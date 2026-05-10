@@ -18,7 +18,7 @@ const PEOPLE_SCHEMA = {
         jobTitle: 'Founder, CEO & Senior Partner',
         worksFor: ORG_REF,
         hasCredential: 'L.LB, L.LM, ICA/UK',
-        image: 'https://iila-swiss.org/images/reza-ostad.JPG',
+        image: 'https://iila-swiss.org/images/Reza-ostad.JPG',
       },
     },
     {
@@ -105,7 +105,7 @@ const FOUNDERS = [
     qualifications: 'L.LB · L.LM · ICA/UK',
     description:
       'Founder and senior legal figure of IILA, providing leadership, strategic direction, and institutional vision for the association.',
-    photo: '/images/reza-ostad.JPG',
+    photo: '/images/Reza-ostad.JPG',
     order: 1,
   },
   {
