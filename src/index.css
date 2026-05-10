@@ -502,11 +502,11 @@ html:not(.dark) .text-muted {
 
   /* ─── Home hero ──────────────────────────────────── */
   .hero-home {
-    background: linear-gradient(150deg, #FAF9F6 0%, #F5F0E8 45%, #EDE5D8 100%);
+    /* Background image handled by inline style in Home.jsx */
     transition: background 0.4s ease;
   }
   html.dark .hero-home {
-    background: linear-gradient(150deg, #060F1E 0%, #0C1C35 55%, #122040 100%);
+    /* Background image handled by inline style in Home.jsx */
   }
 
   /* ─── Section backgrounds ────────────────────────── */

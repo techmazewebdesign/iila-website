@@ -72,7 +72,7 @@ export default function Home() {
           style={{
             backgroundImage: 'url(/images/hero.png)',
             backgroundSize: 'cover',
-            backgroundPosition: 'center right',
+            backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
           }}
         />
