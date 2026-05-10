@@ -70,7 +70,7 @@ export default function Home() {
           className="absolute inset-0 z-0"
           aria-hidden="true"
           style={{
-            backgroundImage: 'url(/images/hero.PNG)',
+            backgroundImage: 'url(/images/hero.png)',
             backgroundSize: 'cover',
             backgroundPosition: 'center right',
             backgroundRepeat: 'no-repeat',
