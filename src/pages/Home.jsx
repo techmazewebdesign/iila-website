@@ -65,91 +65,71 @@ export default function Home() {
       />
       {/* ── HERO ─────────────────────────────────────────── */}
       <section className="hero-home relative min-h-screen flex items-center overflow-hidden">
-        {/* Subtle grid texture */}
+        {/* Hero background image */}
         <div
-          className="absolute inset-0 opacity-[0.025] pointer-events-none"
+          className="absolute inset-0 z-0"
           aria-hidden="true"
           style={{
-            backgroundImage: 'linear-gradient(rgba(212,175,55,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,55,0.8) 1px, transparent 1px)',
-            backgroundSize: '72px 72px',
+            backgroundImage: 'url(/images/hero.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center right',
+            backgroundRepeat: 'no-repeat',
           }}
         />
 
-        {/* Gold glow — right side */}
+        {/* White gradient overlay on left for text readability */}
         <div
-          className="absolute right-[-5%] top-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
+          className="absolute inset-0 z-10 pointer-events-none"
           aria-hidden="true"
-          style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.09) 0%, transparent 70%)' }}
+          style={{
+            background: 'linear-gradient(to right, rgba(250,249,246,0.95) 0%, rgba(250,249,246,0.85) 40%, rgba(250,249,246,0.4) 70%, rgba(250,249,246,0.1) 100%)',
+          }}
         />
 
         {/* Bottom separator */}
-        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent z-20" />
 
-        <div className="relative container-site pt-32 pb-20 lg:pt-44 lg:pb-28 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+        <div className="relative container-site pt-32 pb-20 lg:pt-44 lg:pb-28 w-full z-20">
+          <div className="max-w-2xl lg:max-w-2xl">
 
-            {/* Left: Content */}
-            <div>
-              {/* Label */}
-              <div className="anim-fade-in-up opacity-0-init flex items-center gap-3 mb-8">
-                <div className="w-8 h-px bg-gold" />
-                <span className="text-[10px] text-gold tracking-[0.32em] uppercase font-medium font-sans">
-                  {t.home.heroTag}
-                </span>
-              </div>
-
-              {/* H1 */}
-              <h1 className="anim-fade-in-up anim-delay-1 opacity-0-init font-serif text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-semibold text-t-text leading-[1.08] mb-6">
-                {t.home.heroTitle}
-              </h1>
-
-              {/* Gold line */}
-              <div className="anim-fade-in-up anim-delay-2 opacity-0-init w-14 h-0.5 bg-gold mb-7 rounded-full" />
-
-              {/* Mission text */}
-              <p className="anim-fade-in-up anim-delay-3 opacity-0-init text-muted text-base lg:text-lg leading-relaxed font-sans max-w-lg mb-3">
-                {t.home.heroSubtitle}
-              </p>
-              <p className="anim-fade-in-up anim-delay-4 opacity-0-init text-sm leading-relaxed font-sans max-w-md mb-10">
-                <span className="text-gold font-semibold">{t.home.trust1}</span>
-                <span className="text-t-muted mx-2">·</span>
-                <span className="text-gold font-semibold">{t.home.trust2}</span>
-                <span className="text-t-muted mx-2">·</span>
-                <span className="text-gold font-semibold">{t.home.trust3}</span>
-              </p>
-
-              {/* CTAs */}
-              <div className="anim-fade-in-up anim-delay-5 opacity-0-init flex flex-wrap gap-4">
-                <Link to="/mission" className="btn-solid-burgundy">
-                  {t.home.heroCta1}
-                </Link>
-                <Link to="/contact" className="btn-outline-gold">
-                  {t.home.heroCta2}
-                </Link>
-              </div>
-
+            {/* Label */}
+            <div className="anim-fade-in-up opacity-0-init flex items-center gap-3 mb-8">
+              <div className="w-8 h-px bg-gold" />
+              <span className="text-[10px] text-gold tracking-[0.32em] uppercase font-medium font-sans">
+                {t.home.heroTag}
+              </span>
             </div>
 
-            {/* Right: Logo visual */}
-            <div className="hidden lg:flex justify-center items-center anim-fade-in anim-delay-4 opacity-0-init">
-              <div className="relative">
-                {/* Glow ring behind logo */}
-                <div
-                  className="absolute inset-[-40px] rounded-full"
-                  style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.12) 0%, transparent 70%)' }}
-                />
-                {/* Outer decorative ring */}
-                <div className="absolute inset-[-20px] rounded-full border border-gold/10" />
-                <div className="absolute inset-[-8px] rounded-full border border-gold/6" />
-                {/* Logo image */}
-                <img
-                  src={LOGO_SRC}
-                  alt="Iranian International Lawyers Association — institutional seal"
-                  className="w-72 h-72 xl:w-80 xl:h-80 rounded-full object-cover relative z-10 ring-2 ring-gold/25 shadow-gold-lg"
-                  draggable={false}
-                />
-              </div>
+            {/* H1 */}
+            <h1 className="anim-fade-in-up anim-delay-1 opacity-0-init font-serif text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-semibold text-t-text leading-[1.08] mb-6">
+              {t.home.heroTitle}
+            </h1>
+
+            {/* Gold line */}
+            <div className="anim-fade-in-up anim-delay-2 opacity-0-init w-14 h-0.5 bg-gold mb-7 rounded-full" />
+
+            {/* Mission text */}
+            <p className="anim-fade-in-up anim-delay-3 opacity-0-init text-muted text-base lg:text-lg leading-relaxed font-sans max-w-lg mb-3">
+              {t.home.heroSubtitle}
+            </p>
+            <p className="anim-fade-in-up anim-delay-4 opacity-0-init text-sm leading-relaxed font-sans max-w-md mb-10">
+              <span className="text-gold font-semibold">{t.home.trust1}</span>
+              <span className="text-t-muted mx-2">·</span>
+              <span className="text-gold font-semibold">{t.home.trust2}</span>
+              <span className="text-t-muted mx-2">·</span>
+              <span className="text-gold font-semibold">{t.home.trust3}</span>
+            </p>
+
+            {/* CTAs */}
+            <div className="anim-fade-in-up anim-delay-5 opacity-0-init flex flex-wrap gap-4">
+              <Link to="/mission" className="btn-solid-burgundy">
+                {t.home.heroCta1}
+              </Link>
+              <Link to="/contact" className="btn-outline-gold">
+                {t.home.heroCta2}
+              </Link>
             </div>
+
           </div>
         </div>
       </section>
