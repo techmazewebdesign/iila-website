@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://iila-swiss.org/sitemap.xml
