@@ -101,7 +101,7 @@ export default function Home() {
             </div>
 
             {/* H1 */}
-            <h1 className="anim-fade-in-up anim-delay-1 opacity-0-init font-serif text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-semibold text-t-text leading-[1.08] mb-6">
+            <h1 className="anim-fade-in-up anim-delay-1 opacity-0-init font-serif text-5xl md:text-6xl lg:text-6xl xl:text-7xl font-semibold text-t-text leading-[1.08] mb-6 dark:text-black">
               {t.home.heroTitle}
             </h1>
 
@@ -109,15 +109,15 @@ export default function Home() {
             <div className="anim-fade-in-up anim-delay-2 opacity-0-init w-14 h-0.5 bg-gold mb-7 rounded-full" />
 
             {/* Mission text */}
-            <p className="anim-fade-in-up anim-delay-3 opacity-0-init text-muted text-base lg:text-lg leading-relaxed font-sans max-w-lg mb-3">
+            <p className="anim-fade-in-up anim-delay-3 opacity-0-init text-muted text-base lg:text-lg leading-relaxed font-sans max-w-lg mb-3 dark:text-black">
               {t.home.heroSubtitle}
             </p>
             <p className="anim-fade-in-up anim-delay-4 opacity-0-init text-sm leading-relaxed font-sans max-w-md mb-10">
-              <span className="text-gold font-semibold">{t.home.trust1}</span>
-              <span className="text-t-muted mx-2">·</span>
-              <span className="text-gold font-semibold">{t.home.trust2}</span>
-              <span className="text-t-muted mx-2">·</span>
-              <span className="text-gold font-semibold">{t.home.trust3}</span>
+              <span className="text-gold font-semibold dark:text-black">{t.home.trust1}</span>
+              <span className="text-t-muted mx-2 dark:text-black">·</span>
+              <span className="text-gold font-semibold dark:text-black">{t.home.trust2}</span>
+              <span className="text-t-muted mx-2 dark:text-black">·</span>
+              <span className="text-gold font-semibold dark:text-black">{t.home.trust3}</span>
             </p>
 
             {/* CTAs */}
@@ -201,7 +201,7 @@ export default function Home() {
             ].map((card, i) => (
               <FadeIn key={card.title} delay={i * 120}>
                 <div className="bg-t-surface border border-t-border/10 rounded-sm p-10 hover:border-t-gold/35 hover:-translate-y-1 transition-all duration-300 group h-full flex flex-col" style={{ boxShadow: '0 1px 4px rgba(12,28,53,0.05)' }}>
-                  <span className="text-[9.5px] text-t-gold tracking-[0.26em] uppercase font-bold font-sans">
+                  <span className="text-[9.5px] text-t-gold tracking-[0.26em] uppercase font-bold font-sans dark:text-white">
                     {card.label}
                   </span>
                   <div className="w-7 h-px bg-t-gold/40 my-4 group-hover:w-12 group-hover:bg-t-gold transition-all duration-300" />
