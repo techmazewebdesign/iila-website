@@ -198,8 +198,8 @@ export default function Home() {
       <section className="section-alt section-py border-t border-t-border/10">
         <div className="container-site">
           <SectionTitle
-            label="Dual Mandate"
-            title="A Legal Institution for Present and Future"
+            label={t.home.dualMandateLabel}
+            title={t.home.dualMandateTitle}
             className="mb-14"
           />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

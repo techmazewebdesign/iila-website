@@ -69,6 +69,9 @@ const en = {
     trust2: 'Non-partisan',
     trust3: 'International Law',
 
+    dualMandateLabel: 'Dual Mandate',
+    dualMandateTitle: 'A Legal Institution for Present and Future',
+
     whyLabel: 'Our Foundation',
     whyTitle: 'Why IILA Exists',
     whyText:
@@ -531,6 +534,9 @@ const fa = {
     trust1: 'ثبت‌شده در سوئیس',
     trust2: 'غیرحزبی',
     trust3: 'حقوق بین‌الملل',
+
+    dualMandateLabel: 'ماموریت دوگانه',
+    dualMandateTitle: 'یک نهاد حقوقی برای حال و آینده',
 
     whyLabel: 'زیربنای ما',
     whyTitle: 'چرا IILA ایجاد شده است',
