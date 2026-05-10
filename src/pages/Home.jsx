@@ -228,11 +228,11 @@ export default function Home() {
             <div className="bg-t-surface border border-t-border/10 rounded-sm p-12 lg:p-16 relative overflow-hidden" style={{ boxShadow: '0 1px 4px rgba(12,28,53,0.05)' }}>
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-t-gold to-transparent opacity-50" />
               <div className="w-8 h-px bg-t-gold mx-auto mb-8 opacity-60" />
-              <p className="font-display text-[1.4rem] lg:text-[1.7rem] text-t-text italic leading-[1.65] mb-8 opacity-80">
+              <p className="font-display text-[1.4rem] lg:text-[1.7rem] text-t-text italic leading-[1.65] mb-8 opacity-80 dark:text-white">
                 {t.home.quote}
               </p>
               <div className="w-8 h-px bg-t-gold/40 mx-auto mb-6" />
-              <span className="text-t-muted text-[9.5px] tracking-[0.24em] uppercase font-sans">
+              <span className="text-t-muted text-[9.5px] tracking-[0.24em] uppercase font-sans dark:text-white">
                 {t.home.quoteAttribution}
               </span>
             </div>
