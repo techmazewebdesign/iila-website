@@ -210,9 +210,6 @@ export default function Partners() {
               <Link to="/contact" className="btn-solid-gold">
                 {t.partners.ctaBtn}
               </Link>
-              <Link to="/contact" className="btn-outline-gold">
-                {t.partners.ctaBtn}
-              </Link>
             </div>
           </FadeIn>
         </div>
