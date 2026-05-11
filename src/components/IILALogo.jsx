@@ -14,7 +14,7 @@ export default function IILALogo({ size = 44, showText = true, light = false, cl
       />
       {showText && (
         <div className="flex flex-col leading-tight select-none">
-          <span className={`font-serif font-semibold ${light ? 'text-white' : 'text-t-text'} tracking-widest text-xs`}>
+          <span className={`font-serif font-semibold ${light ? 'text-white !important' : 'text-t-text'} tracking-widest text-xs`}>
             IRANIAN INTERNATIONAL LAWYERS ASSOCIATION
           </span>
         </div>

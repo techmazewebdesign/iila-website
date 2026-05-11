@@ -49,7 +49,7 @@ export default function Footer() {
 
           {/* Brand column */}
           <div className="lg:col-span-4">
-            <IILALogo size={52} showText={true} light={true} />
+            <IILALogo size={52} showText={true} light={true} className="text-white" />
             <div className="w-10 h-px mt-6 mb-5" style={{ background: 'rgba(155,125,58,0.60)' }} />
             <p className="text-sm font-sans leading-[1.85] max-w-xs mb-6 text-white">
               {t.footer.description}
