@@ -58,6 +58,7 @@ export default function SEO({
   image = DEFAULT_IMAGE,
   type = 'website',
   schema = null,
+  keywords = null,
 }) {
   const url     = `${BASE_URL}${path}`
   const segment = path.replace(/^\//, '')
@@ -72,6 +73,9 @@ export default function SEO({
     setMeta('meta[name="description"]',           'content', description)
     setMeta('meta[name="author"]',                'content', SITE_NAME)
     setMeta('meta[name="robots"]',                'content', 'index, follow')
+    if (keywords) {
+      setMeta('meta[name="keywords"]',            'content', keywords)
+    }
 
     // ── Open Graph ─────────────────────────────────────
     setMeta('meta[property="og:title"]',          'content', title)
@@ -114,6 +118,33 @@ export default function SEO({
       }),
     })
 
+    // ── Organization schema (every page) ─────────────────
+    upsertSchema('organization', {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      '@id': `${BASE_URL}/#organization`,
+      name: SITE_NAME,
+      url: BASE_URL,
+      logo: DEFAULT_IMAGE,
+      description: 'An independent, non-profit legal association registered in Switzerland, dedicated to rule of law, human rights, and institutional preparation for Iran\'s democratic future.',
+      sameAs: [
+        'https://www.linkedin.com/company/iila-swiss',
+        'https://twitter.com/iila_swiss',
+      ],
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: 'CH',
+        addressLocality: 'Zurich',
+      },
+      contactPoint: {
+        '@type': 'ContactPoint',
+        telephone: '+41-44-XXX-XXXX',
+        contactType: 'customer service',
+        email: 'info@iilia-swiss.org',
+        availableLanguage: ['English', 'Persian'],
+      },
+    })
+
     // ── Page-specific schema ───────────────────────────
     if (schema) {
       pageSchemaEl.current = upsertSchema('page-schema', schema)
@@ -125,7 +156,7 @@ export default function SEO({
         pageSchemaEl.current = null
       }
     }
-  }, [title, description, url, image, type, schema, segment, crumb])
+  }, [title, description, url, image, type, schema, segment, crumb, keywords])
 
   return null
 }

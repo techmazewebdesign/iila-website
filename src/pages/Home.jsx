@@ -58,10 +58,11 @@ export default function Home() {
   return (
     <div>
       <SEO
-        title="Iranian International Lawyers Association | Rule of Law, Human Rights & Legal Research"
-        description="IILA is an independent international lawyers association advancing rule of law, human rights, legal research, and institutional legal frameworks for Iran's future."
+        title="Iranian International Lawyers Association (IILA) | Rule of Law, Human Rights & Legal Research for Iran"
+        description="IILA is an independent, non-profit international lawyers association registered in Switzerland. We advance rule of law, human rights, legal research, and institutional frameworks for Iran's democratic future."
         path="/"
         schema={SCHEMA_ORG}
+        keywords="Iranian International Lawyers Association, IILA, rule of law Iran, human rights Iran, legal research Iran, international lawyers, Swiss-registered non-profit, Iranian democracy, constitutional law, transitional justice, legal infrastructure"
       />
       {/* ── HERO ─────────────────────────────────────────── */}
       <section className="hero-home relative min-h-screen flex items-center overflow-hidden">
