@@ -271,7 +271,6 @@ export default function Home() {
         subtitle={t.home.ctaSubtitle}
         buttons={[
           { label: t.home.ctaBtn1, to: '/contact' },
-          { label: t.home.ctaBtn2, to: '/expert-network' },
         ]}
       />
     </div>
