@@ -80,7 +80,7 @@ export default function HumanRights() {
                 {/* Human In Chain logo mark */}
                 <div className="mb-8 inline-flex items-center gap-3 border border-gold/20 rounded-sm px-6 py-5 bg-t-surface/40">
                   <img
-                    src="/images/humaninchain.jpg"
+                    src="/images/humaninchain.JPG"
                     alt="Human In Chain logo"
                     className="flex-shrink-0 w-auto h-auto max-w-[140px] object-contain self-center"
                   />
