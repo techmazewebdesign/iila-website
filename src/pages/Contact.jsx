@@ -58,8 +58,8 @@ export default function Contact() {
                 {/* Info cards */}
                 <div className="space-y-3">
                   {[
-                    { label: t.contact.email, value: 'info@iilia-swiss.org', href: 'mailto:info@iilia-swiss.org' },
-                    { label: t.contact.website, value: 'iilia-swiss.org' },
+                    { label: t.contact.email, value: 'info@iila-swiss.org', href: 'mailto:info@iila-swiss.org' },
+                    { label: t.contact.website, value: 'iila-swiss.org' },
                     { label: t.contact.registered, value: t.contact.swissValue },
                   ].map((item) => (
                     <div

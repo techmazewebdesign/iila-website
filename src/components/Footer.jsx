@@ -65,7 +65,7 @@ export default function Footer() {
               </a>
               <p className="flex items-center gap-2.5 text-sm font-sans tracking-wide" style={{ color: '#8A9AB0' }}>
                 <span className="w-3 h-px" style={{ background: '#8A9AB0' }} />
-                iilia-swiss.org · {t.footer.swissValue}
+                iila-swiss.org · {t.footer.swissValue}
               </p>
             </div>
           </div>

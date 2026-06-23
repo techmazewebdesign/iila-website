@@ -24,7 +24,7 @@ const SCHEMA_ORG = {
         caption: 'Iranian International Lawyers Association',
       },
       image: { '@id': 'https://iila-swiss.org/#logo' },
-      email: 'info@iilia-swiss.org',
+      email: 'info@iila-swiss.org',
       foundingLocation: { '@type': 'Place', name: 'Switzerland', addressCountry: 'CH' },
       description: 'IILA is an independent international lawyers association advancing rule of law, human rights, legal research, and institutional legal frameworks for Iran\'s future.',
       sameAs: ['https://iila-swiss.org'],

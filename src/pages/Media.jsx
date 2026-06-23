@@ -195,10 +195,10 @@ export default function Media() {
                 Media Inquiry
               </Link>
               <a
-                href="mailto:info@iilia-swiss.org"
+                href="mailto:info@iila-swiss.org"
                 className="btn-outline-gold"
               >
-                info@iilia-swiss.org
+                info@iila-swiss.org
               </a>
             </div>
           </FadeIn>

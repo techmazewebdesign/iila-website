@@ -21,7 +21,7 @@ const en = {
   footer: {
     description:
       'An independent, non-profit legal association registered in Switzerland, dedicated to rule of law, human rights, and institutional preparation for Iran\'s democratic future.',
-    email: 'info@iilia-swiss.org',
+    email: 'info@iila-swiss.org',
     orgCol: 'Organisation',
     researchCol: 'Research & Publications',
     collabCol: 'Collaboration',
@@ -487,7 +487,7 @@ const fa = {
   footer: {
     description:
       'انجمن حقوقی مستقل و غیرانتفاعی ثبت‌شده در سوئیس، متعهد به حاکمیت قانون، حقوق بشر، و آماده‌سازی نهادی برای آینده دموکراتیک ایران.',
-    email: 'info@iilia-swiss.org',
+    email: 'info@iila-swiss.org',
     orgCol: 'نهاد',
     researchCol: 'پژوهش و انتشارات',
     collabCol: 'همکاری',

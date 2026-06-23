@@ -140,7 +140,7 @@ export default function SEO({
         '@type': 'ContactPoint',
         telephone: '+41-44-XXX-XXXX',
         contactType: 'customer service',
-        email: 'info@iilia-swiss.org',
+        email: 'info@iila-swiss.org',
         availableLanguage: ['English', 'Persian'],
       },
     })

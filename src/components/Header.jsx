@@ -169,7 +169,7 @@ export default function Header() {
         {/* Bottom info */}
         <div className="container-site py-5 flex items-center justify-between border-t border-t-border/15">
           <p className="text-t-text text-[10px] tracking-[0.18em] uppercase font-bold font-sans">
-            IILA · Swiss-registered · info@iilia-swiss.org
+            IILA · Swiss-registered · info@iila-swiss.org
           </p>
           <div className="flex items-center gap-3">
             <LanguageToggle />
