@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { ThemeProvider } from './context/ThemeContext'
 import { LanguageProvider } from './context/LanguageContext'
@@ -16,6 +16,8 @@ import Media from './pages/Media'
 import Contact from './pages/Contact'
 import HumanRights from './pages/HumanRights'
 import OurPeople from './pages/OurPeople'
+import PolicyBriefs from './pages/PolicyBriefs'
+import { useLanguage } from './context/LanguageContext'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -23,28 +25,59 @@ function ScrollToTop() {
   return null
 }
 
+function LocalePathSync() {
+  const { lang } = useLanguage()
+  const { pathname, search, hash } = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const isPersianPath = pathname === '/fa' || pathname.startsWith('/fa/')
+    if (lang === 'fa' && !isPersianPath) {
+      const target = pathname === '/' ? '/fa/' : `/fa${pathname}`
+      navigate(`${target}${search}${hash}`, { replace: true })
+    } else if (lang === 'en' && isPersianPath) {
+      const target = pathname.replace(/^\/fa/, '') || '/'
+      navigate(`${target}${search}${hash}`, { replace: true })
+    }
+  }, [lang, pathname, search, hash, navigate])
+
+  return null
+}
+
+const pageRoutes = [
+  ['/', Home],
+  ['/about', About],
+  ['/mission', Mission],
+  ['/publications', Publications],
+  ['/policy-briefs', PolicyBriefs],
+  ['/human-rights', HumanRights],
+  ['/roadmap', Roadmap],
+  ['/committees', Committees],
+  ['/partners', Partners],
+  ['/expert-network', ExpertNetwork],
+  ['/media', Media],
+  ['/contact', Contact],
+  ['/our-people', OurPeople],
+]
+
 function App() {
   return (
     <LanguageProvider>
       <ThemeProvider>
         <BrowserRouter>
           <ScrollToTop />
+          <LocalePathSync />
           <div className="min-h-screen bg-t-bg flex flex-col transition-colors duration-300">
             <Header />
             <main className="flex-1">
               <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/mission" element={<Mission />} />
-                <Route path="/publications" element={<Publications />} />
-                <Route path="/human-rights" element={<HumanRights />} />
-                <Route path="/roadmap" element={<Roadmap />} />
-                <Route path="/committees" element={<Committees />} />
-                <Route path="/partners" element={<Partners />} />
-                <Route path="/expert-network" element={<ExpertNetwork />} />
-                <Route path="/media" element={<Media />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/our-people" element={<OurPeople />} />
+                {pageRoutes.flatMap(([path, Component]) => {
+                  const faPath = path === '/' ? '/fa/' : `/fa${path}`
+                  return [
+                    <Route key={path} path={path} element={<Component />} />,
+                    <Route key={faPath} path={faPath} element={<Component />} />,
+                  ]
+                })}
               </Routes>
             </main>
             <Footer />

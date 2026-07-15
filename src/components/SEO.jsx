@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
+import { useLanguage } from '../context/LanguageContext'
+import { BASE_URL, SITE_NAME, getPageMetadata } from '../seoConfig'
 
-const BASE_URL  = 'https://iila-swiss.org'
-const SITE_NAME = 'Iranian International Lawyers Association'
-const DEFAULT_IMAGE = `${BASE_URL}/images/iilia_logo_website.JPG`
+const ORGANIZATION_LOGO = `${BASE_URL}/images/iilia_logo_website.JPG`
 
 const CRUMB_LABELS = {
   'about':          'About IILA',
@@ -39,6 +39,17 @@ function setLink(rel, href) {
   el.setAttribute('href', href)
 }
 
+function setAlternate(hreflang, href) {
+  let el = document.querySelector(`link[rel="alternate"][hreflang="${hreflang}"]`)
+  if (!el) {
+    el = document.createElement('link')
+    el.rel = 'alternate'
+    el.hreflang = hreflang
+    document.head.appendChild(el)
+  }
+  el.href = href
+}
+
 function upsertSchema(id, data) {
   let el = document.querySelector(`script[data-schema="${id}"]`)
   if (!el) {
@@ -55,22 +66,26 @@ export default function SEO({
   title,
   description,
   path = '',
-  image = DEFAULT_IMAGE,
-  type = 'website',
+  canonicalPath,
+  image,
+  imageAlt,
+  type,
   schema = null,
   keywords = null,
 }) {
-  const url     = `${BASE_URL}${path}`
+  const { lang } = useLanguage()
+  const metadata = getPageMetadata({ path, lang, title, description, canonicalPath, image, imageAlt, type })
+  const { url } = metadata
   const segment = path.replace(/^\//, '')
-  const crumb   = CRUMB_LABELS[segment] || title
+  const crumb   = CRUMB_LABELS[segment] || metadata.title
   const pageSchemaEl = useRef(null)
 
   useEffect(() => {
     // ── Title ──────────────────────────────────────────
-    document.title = title
+    document.title = metadata.title
 
     // ── Standard meta ──────────────────────────────────
-    setMeta('meta[name="description"]',           'content', description)
+    setMeta('meta[name="description"]',           'content', metadata.description)
     setMeta('meta[name="author"]',                'content', SITE_NAME)
     setMeta('meta[name="robots"]',                'content', 'index, follow')
     if (keywords) {
@@ -78,32 +93,42 @@ export default function SEO({
     }
 
     // ── Open Graph ─────────────────────────────────────
-    setMeta('meta[property="og:title"]',          'content', title)
-    setMeta('meta[property="og:description"]',    'content', description)
-    setMeta('meta[property="og:type"]',           'content', type)
-    setMeta('meta[property="og:url"]',            'content', url)
-    setMeta('meta[property="og:image"]',          'content', image)
-    setMeta('meta[property="og:locale"]',         'content', 'en_US')
+    setMeta('meta[property="og:title"]',          'content', metadata.title)
+    setMeta('meta[property="og:description"]',    'content', metadata.description)
+    setMeta('meta[property="og:type"]',           'content', metadata.type)
+    setMeta('meta[property="og:url"]',            'content', metadata.url)
+    setMeta('meta[property="og:image"]',          'content', metadata.image)
+    setMeta('meta[property="og:image:secure_url"]', 'content', metadata.image)
+    setMeta('meta[property="og:image:type"]',     'content', 'image/png')
+    setMeta('meta[property="og:image:width"]',    'content', '1200')
+    setMeta('meta[property="og:image:height"]',   'content', '630')
+    setMeta('meta[property="og:image:alt"]',      'content', metadata.imageAlt)
+    setMeta('meta[property="og:locale"]',         'content', metadata.locale)
+    setMeta('meta[property="og:locale:alternate"]', 'content', metadata.alternateLocale)
     setMeta('meta[property="og:site_name"]',      'content', SITE_NAME)
 
     // ── Twitter Card ───────────────────────────────────
     setMeta('meta[name="twitter:card"]',          'content', 'summary_large_image')
-    setMeta('meta[name="twitter:title"]',         'content', title)
-    setMeta('meta[name="twitter:description"]',   'content', description)
-    setMeta('meta[name="twitter:image"]',         'content', image)
+    setMeta('meta[name="twitter:title"]',         'content', metadata.title)
+    setMeta('meta[name="twitter:description"]',   'content', metadata.description)
+    setMeta('meta[name="twitter:image"]',         'content', metadata.image)
+    setMeta('meta[name="twitter:image:alt"]',     'content', metadata.imageAlt)
 
     // ── Canonical ──────────────────────────────────────
-    setLink('canonical', url)
+    setLink('canonical', metadata.url)
+    setAlternate('en', metadata.englishUrl)
+    setAlternate('fa', metadata.persianUrl)
+    setAlternate('x-default', metadata.englishUrl)
 
     // ── WebPage + BreadcrumbList schema (every page) ───
     upsertSchema('webpage', {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
       '@id': `${url}#webpage`,
-      name: title,
-      description,
+      name: metadata.title,
+      description: metadata.description,
       url,
-      inLanguage: 'en-US',
+      inLanguage: lang === 'fa' ? 'fa-IR' : 'en-US',
       isPartOf: { '@id': `${BASE_URL}/#website` },
       about: { '@id': `${BASE_URL}/#organization` },
       ...(segment && {
@@ -125,7 +150,7 @@ export default function SEO({
       '@id': `${BASE_URL}/#organization`,
       name: SITE_NAME,
       url: BASE_URL,
-      logo: DEFAULT_IMAGE,
+      logo: ORGANIZATION_LOGO,
       description: 'An independent, non-profit legal association registered in Switzerland, dedicated to rule of law, human rights, and institutional preparation for Iran\'s democratic future.',
       sameAs: [
         'https://www.linkedin.com/company/iila-swiss',
@@ -156,7 +181,7 @@ export default function SEO({
         pageSchemaEl.current = null
       }
     }
-  }, [title, description, url, image, type, schema, segment, crumb, keywords])
+  }, [metadata.title, metadata.description, metadata.type, metadata.url, metadata.image, metadata.imageAlt, metadata.locale, metadata.alternateLocale, metadata.englishUrl, metadata.persianUrl, url, lang, schema, segment, crumb, keywords])
 
   return null
 }

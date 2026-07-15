@@ -19,6 +19,7 @@ const PEOPLE_SCHEMA = {
         worksFor: ORG_REF,
         hasCredential: 'L.LB, L.LM, ICA/UK',
         image: 'https://iila-swiss.org/images/Reza-ostad.JPG',
+        knowsAbout: ['Strategic Leadership', 'Institutional Development', 'Legal Administration', 'International Law'],
       },
     },
     {
@@ -81,6 +82,7 @@ const PEOPLE_SCHEMA = {
         worksFor: ORG_REF,
         hasCredential: 'J.D.',
         image: 'https://iila-swiss.org/images/Yasmin-whitmer.PNG',
+        knowsAbout: ['Corporate Governance', 'Commercial Transactions', 'Cross-Border Advisory'],
         homeLocation: { '@type': 'Place', name: 'United States' },
       },
     },
@@ -93,6 +95,7 @@ const PEOPLE_SCHEMA = {
         worksFor: ORG_REF,
         hasCredential: 'B.A. Business Management',
         image: 'https://iila-swiss.org/images/Roozbeh-ostad.JPG',
+        knowsAbout: ['Digital Infrastructure', 'Technology Operations', 'IT Systems Management'],
       },
     },
   ],
@@ -106,6 +109,7 @@ const FOUNDERS = [
     description:
       'Founder and senior legal figure of IILA, providing leadership, strategic direction, and institutional vision for the association.',
     photo: '/images/Reza-ostad.JPG',
+    skills: ['Strategic Leadership', 'Institutional Development', 'Legal Administration', 'International Law'],
     order: 1,
   },
   {
@@ -115,6 +119,7 @@ const FOUNDERS = [
     description:
       'Specializes in government law and policy, national security, international human rights law, constitutional law, and strategic leadership.',
     photo: '/images/Dr.Shima-bozorgi.PNG',
+    skills: ['Government Law', 'National Security', 'Human Rights Law', 'Constitutional Law', 'Strategic Leadership'],
     order: 2,
   },
   {
@@ -124,6 +129,7 @@ const FOUNDERS = [
     description:
       'Senior legal professional with 25+ years of experience in trust, estate, complex commercial disputes, governance, fiduciary duties, cross-border matters, and international arbitration.',
     photo: '/images/Holly_Gilani.PNG',
+    skills: ['Trust & Estate Law', 'International Arbitration', 'Governance', 'Cross-Border Matters'],
     order: 3,
   },
   {
@@ -133,6 +139,7 @@ const FOUNDERS = [
     description:
       'Specialised in International Business Law, innovation-related legal matters, and technology disputes.',
     photo: '/images/Mohammad-hossein-heidarpour.JPG',
+    skills: ['International Business Law', 'Technology Law', 'Innovation Law'],
     order: 4,
   },
   {
@@ -142,6 +149,7 @@ const FOUNDERS = [
     description:
       'International law specialist focusing on environmental dispute resolution and compensation mechanisms. Based in Maastricht, the Netherlands.',
     photo: '/images/mohammad-Faghani.JPG',
+    skills: ['International Law', 'Environmental Law', 'Dispute Resolution'],
     order: 5,
   },
   {
@@ -151,6 +159,7 @@ const FOUNDERS = [
     description:
       'Practising business law attorney with expertise in corporate governance, commercial transactions, and cross-border legal advisory.',
     photo: '/images/Yasmin-whitmer.PNG',
+    skills: ['Corporate Governance', 'Commercial Transactions', 'Cross-Border Advisory'],
     order: 6,
   },
   {
@@ -158,8 +167,9 @@ const FOUNDERS = [
     role: 'Head of IT',
     qualifications: 'B.A. Business Management',
     description:
-      'Leads digital infrastructure, technical systems, and technology operations supporting the association\'s online and institutional presence.',
+      "Leads digital infrastructure, technical systems, and technology operations supporting the association's online and institutional presence.",
     photo: '/images/Roozbeh-ostad.JPG',
+    skills: ['Digital Infrastructure', 'Technology Operations', 'IT Systems Management'],
     order: 7,
   },
 ]
@@ -207,9 +217,28 @@ function MemberCard({ founder, delay = 0 }) {
           </p>
 
           {/* Description */}
-          <p className="text-t-text/70 text-sm font-sans leading-relaxed flex-1">
+          <p className="text-t-text/70 text-sm font-sans leading-relaxed flex-1 mb-5">
             {founder.description}
           </p>
+
+          {/* Skills */}
+          {founder.skills && founder.skills.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-auto pt-4 border-t border-white/5">
+              {founder.skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="text-[9px] font-sans font-medium tracking-[0.15em] uppercase px-2 py-1 rounded-sm"
+                  style={{
+                    background: 'rgba(212,175,55,0.08)',
+                    color: 'rgba(212,175,55,0.75)',
+                    border: '1px solid rgba(212,175,55,0.18)',
+                  }}
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </article>
     </FadeIn>
@@ -218,6 +247,7 @@ function MemberCard({ founder, delay = 0 }) {
 
 export default function OurPeople() {
   const t = useTranslation()
+
   return (
     <div>
       <SEO
@@ -226,6 +256,7 @@ export default function OurPeople() {
         path="/our-people"
         schema={PEOPLE_SCHEMA}
       />
+
       {/* ── Page Hero ── */}
       <section className="page-hero">
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
@@ -248,7 +279,6 @@ export default function OurPeople() {
       {/* ── Founder Grid ── */}
       <section className="section-py section-dark border-t border-white/5">
         <div className="container-site">
-
           {/* Intro text */}
           <FadeIn>
             <p className="text-muted/60 text-base font-sans leading-relaxed max-w-2xl mb-14">

@@ -23,7 +23,7 @@ const AREAS = [
 ]
 
 export default function ExpertNetwork() {
-  const { t } = useTranslation()
+  const t = useTranslation()
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({
     name: '', email: '', country: '', profession: '',
@@ -40,6 +40,11 @@ export default function ExpertNetwork() {
 
   return (
     <div>
+      <SEO
+        title="Expert Network | IILA Legal Professionals"
+        description="Join IILA's international network of legal professionals, researchers, and specialists working on institutional preparation and legal reform for Iran."
+        path="/expert-network"
+      />
       {/* Page Hero */}
       <section className="page-hero">
         <div className="absolute inset-0 bg-gradient-to-b from-navy-950 to-navy-900 hidden dark:block" />

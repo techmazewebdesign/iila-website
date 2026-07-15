@@ -7,3 +7,4 @@ dist/
 .netlify/
 netlify.toml
 windsurf_deployment.yaml
+.vercel

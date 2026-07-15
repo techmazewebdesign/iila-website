@@ -8,6 +8,9 @@ const LanguageContext = createContext({
 
 export function LanguageProvider({ children }) {
   const [lang, setLangState] = useState(() => {
+    if (window.location.pathname === '/fa' || window.location.pathname.startsWith('/fa/')) {
+      return 'fa'
+    }
     try {
       return localStorage.getItem('iila-lang') || 'en'
     } catch {
