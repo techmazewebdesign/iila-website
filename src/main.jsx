@@ -10,7 +10,10 @@ const app = (
   </StrictMode>
 )
 
-if (rootEl.hasChildNodes()) {
+if (rootEl.querySelector('[data-seo-fallback]')) {
+  rootEl.replaceChildren()
+  createRoot(rootEl).render(app)
+} else if (rootEl.hasChildNodes()) {
   hydrateRoot(rootEl, app)
 } else {
   createRoot(rootEl).render(app)

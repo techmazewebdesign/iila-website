@@ -47,9 +47,14 @@ function metadataHtml(metadata) {
 
 function renderPage(path, lang) {
   const metadata = getPageMetadata({ path, lang })
+  const fallback = `<main data-seo-fallback aria-label="${escapeHtml(metadata.title)}">
+      <h1>${escapeHtml(metadata.title.replace(/\s*[|—].*$/, ''))}</h1>
+      <p>${escapeHtml(metadata.description)}</p>
+    </main>`
   return template
     .replace(/<html lang="[^"]+"(?: dir="[^"]+")?>/, `<html lang="${lang === 'fa' ? 'fa' : 'en'}" dir="${lang === 'fa' ? 'rtl' : 'ltr'}">`)
     .replace(/<!-- seo:start -->[\s\S]*?<!-- seo:end -->/, metadataHtml(metadata))
+    .replace('<div id="root"></div>', `<div id="root">${fallback}</div>`)
 }
 
 for (const path of ROUTES) {
