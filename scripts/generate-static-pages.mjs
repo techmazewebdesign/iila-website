@@ -47,9 +47,23 @@ function metadataHtml(metadata) {
 
 function renderPage(path, lang) {
   const metadata = getPageMetadata({ path, lang })
+  const contactLabel = lang === 'fa' ? 'تماس با IILA' : 'Contact IILA'
+  const homeLabel = lang === 'fa' ? 'صفحه اصلی' : 'Home'
+  const crawlableContent = `<main data-seo-static="true">
+      <article>
+        <h1>${escapeHtml(metadata.title)}</h1>
+        <p>${escapeHtml(metadata.description)}</p>
+        <nav aria-label="${escapeHtml(lang === 'fa' ? 'پیوندهای اصلی' : 'Primary links')}">
+          <a href="${getLocalizedPath('/', lang)}">${homeLabel}</a>
+          <a href="${getLocalizedPath('/contact', lang)}">${contactLabel}</a>
+          <a href="mailto:info@iila-swiss.org">info@iila-swiss.org</a>
+        </nav>
+      </article>
+    </main>`
   return template
     .replace(/<html lang="[^"]+"(?: dir="[^"]+")?>/, `<html lang="${lang === 'fa' ? 'fa' : 'en'}" dir="${lang === 'fa' ? 'rtl' : 'ltr'}">`)
     .replace(/<!-- seo:start -->[\s\S]*?<!-- seo:end -->/, metadataHtml(metadata))
+    .replace('<div id="root"></div>', `<div id="root">${crawlableContent}</div>`)
 }
 
 for (const path of ROUTES) {
@@ -80,4 +94,4 @@ ${sitemapUrls}
 </urlset>
 `)
 
-console.log(`Generated ${ROUTES.length * 2} static metadata pages and a localized sitemap.`)
+console.log(`Generated ${ROUTES.length * 2} crawlable static pages and a localized sitemap.`)
