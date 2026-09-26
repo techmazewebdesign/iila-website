@@ -15,6 +15,9 @@ export default function PublicationCard({
   subtitle,
   edition,
   cover,
+  readLabel = 'Read Report',
+  downloadLabel = `Download ${fileType}`,
+  statusLabel = status,
 }) {
   const isPersian = language === 'فارسی'
   const statusClass =
@@ -39,7 +42,7 @@ export default function PublicationCard({
             <span className={`text-[9px] tracking-[0.12em] uppercase font-medium px-2 py-0.5 border ${isPersian ? 'border-gold/30 text-gold/70 font-sans' : 'border-t-border/20 text-t-text/40'}`}>
               {language}
             </span>
-            <span className={statusClass}>{status}</span>
+            <span className={statusClass}>{statusLabel}</span>
           </div>
         </div>
 
@@ -75,7 +78,7 @@ export default function PublicationCard({
               <>
                 {cover && (
                   <a href={href} target="_blank" rel="noreferrer" className="btn-ghost text-[10px] py-2.5 px-4 flex-1 text-center inline-flex items-center justify-center">
-                    Read Report
+                    {readLabel}
                   </a>
                 )}
                 <a
@@ -88,7 +91,7 @@ export default function PublicationCard({
                     <polyline points="7 10 12 15 17 10" />
                     <line x1="12" y1="15" x2="12" y2="3" />
                   </svg>
-                  Download {fileType}
+                  {downloadLabel}
                 </a>
               </>
             ) : (
