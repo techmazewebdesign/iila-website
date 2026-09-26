@@ -12,6 +12,9 @@ export default function PublicationCard({
   href,
   fileType = 'PDF',
   language = 'English',
+  subtitle,
+  edition,
+  cover,
 }) {
   const isPersian = language === 'فارسی'
   const statusClass =
@@ -24,6 +27,11 @@ export default function PublicationCard({
   return (
     <FadeIn delay={delay} className="h-full">
       <article className="pub-card group h-full" dir={isPersian ? 'rtl' : 'ltr'}>
+        {cover && (
+          <a href={href} target="_blank" rel="noreferrer" className="-mx-8 -mt-8 mb-6 block overflow-hidden border-b border-t-border/10">
+            <img src={cover} alt={`${title} cover`} className="w-full aspect-[3/4] object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+          </a>
+        )}
         {/* Header */}
         <div className="flex items-start justify-between gap-4 mb-5">
           <span className="category-badge">{category}</span>
@@ -40,6 +48,10 @@ export default function PublicationCard({
           {title}
         </h3>
 
+        {subtitle && (
+          <p className="text-t-muted text-sm leading-relaxed italic mb-4">{subtitle}</p>
+        )}
+
         {/* Gold rule */}
         <div className="w-8 h-px bg-t-gold/40 mb-4 group-hover:w-14 group-hover:bg-t-gold transition-all duration-300" />
 
@@ -53,25 +65,32 @@ export default function PublicationCard({
         {/* Meta */}
         <div className="mt-auto">
           <div className="flex items-center justify-between text-[9.5px] text-t-muted/80 tracking-[0.10em] uppercase font-sans border-t border-t-border/10 pt-4 mb-5">
-            <span>{author}</span>
+            <span>{edition || author}</span>
             <span className="font-semibold">{date}</span>
           </div>
 
           {/* Actions */}
           <div className="flex gap-3">
             {href ? (
-              <a
-                href={href}
-                download
-                className="btn-solid-burgundy text-[10px] py-2.5 px-5 flex-1 text-center inline-flex items-center justify-center gap-1.5"
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Download {fileType}
-              </a>
+              <>
+                {cover && (
+                  <a href={href} target="_blank" rel="noreferrer" className="btn-ghost text-[10px] py-2.5 px-4 flex-1 text-center inline-flex items-center justify-center">
+                    Read Report
+                  </a>
+                )}
+                <a
+                  href={href}
+                  download
+                  className="btn-solid-burgundy text-[10px] py-2.5 px-4 flex-1 text-center inline-flex items-center justify-center gap-1.5"
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Download {fileType}
+                </a>
+              </>
             ) : (
               <button className="btn-ghost text-[10px] py-2.5 px-5 flex-1">
                 Coming Soon

@@ -17,6 +17,21 @@ const CATEGORIES = [
 
 const PUBLICATIONS = [
   {
+    title: 'IRAN 2026 — Human Rights Report',
+    subtitle: 'Lives, evidence and the pursuit of accountability',
+    edition: 'Research Edition',
+    category: 'Human Rights / Legal Analysis',
+    abstract:
+      'A research-based human rights report examining developments affecting people in Iran, including state repression, executions, women’s rights, detention, exile and return, political prisoners, and pathways toward legal accountability.',
+    date: '23 September 2026',
+    author: 'Iranian International Lawyers Association (IILA)',
+    status: 'Published',
+    href: '/Publications/Iran%20Human%20Rights%20Report%202026%20IILA.pdf',
+    cover: '/Publications/iran-human-rights-report-2026-cover.png',
+    fileType: 'PDF',
+    language: 'English',
+  },
+  {
     title: 'EU Policy Dossier on Iran',
     category: 'International Policy / EU Policy',
     abstract:
