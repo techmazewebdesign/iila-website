@@ -183,3 +183,9 @@ test('preview setup accepts only its exact deployment origin',()=>{
   assert.throws(()=>origin({headers:{origin:'https://iila-swiss.org'}}))
  }finally{for(const [k,v] of Object.entries(previous)){if(v===undefined)delete process.env[k];else process.env[k]=v}}
 })
+
+test('server entry loads with CommonJS require-of-ESM disabled on hosted runtime',async()=>{
+ const {spawnSync}=await import('node:child_process')
+ const result=spawnSync(process.execPath,['--no-experimental-require-module','--input-type=module','-e',"await import('./api/intake.js')"],{cwd:new URL('../',import.meta.url),encoding:'utf8'})
+ assert.equal(result.status,0,result.stderr)
+})
