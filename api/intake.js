@@ -10,7 +10,7 @@ export default async function handler(req,res) {
  try {
   if(req.method==='GET'&&action==='config') {
    const active=configured()?await ready():false
-   return res.status(200).json({active,supabaseUrl:process.env.SUPABASE_URL||null,publishableKey:process.env.SUPABASE_PUBLISHABLE_KEY||null})
+   return res.status(200).json({active,firebaseConfig:process.env.INTAKE_FIREBASE_PROJECT_ID&&process.env.INTAKE_FIREBASE_API_KEY?{projectId:process.env.INTAKE_FIREBASE_PROJECT_ID,apiKey:process.env.INTAKE_FIREBASE_API_KEY,authDomain:process.env.INTAKE_FIREBASE_AUTH_DOMAIN}:null})
   }
   if(req.method!=='POST'){res.setHeader('Allow','GET, POST');return res.status(405).json({code:'method_not_allowed'})}
   origin(req)

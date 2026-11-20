@@ -1,19 +1,16 @@
 import crypto from 'node:crypto'
-import {createClient} from '@supabase/supabase-js'
+import {createFirebaseStore} from './firebase-store.mjs'
 import nodemailer from 'nodemailer'
 import sharp from 'sharp'
 import {SCHEMA_VERSION,validate,cleanData,MAX_FILES} from '../../src/intake/schema.js'
 import {encrypt,decrypt,hmac,equal,issueSession,verifySession,validateFile,clam,fail} from './security.mjs'
 export const STATUSES=['received','awaiting_review','legal_review','needs_evidence','documenting','ready_for_decision','verified','referred','closed']
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const required=['SUPABASE_URL','SUPABASE_SECRET_KEY','SUPABASE_PUBLISHABLE_KEY','INTAKE_ENCRYPTION_KEY','INTAKE_SESSION_KEY','INTAKE_STAFF_IDS','INTAKE_CLAMAV_HOST','INTAKE_CLAMAV_CLIENT_CERT','INTAKE_CLAMAV_CLIENT_KEY','INTAKE_SMTP_PASSWORD','INTAKE_PRIVACY_VERSION']
+const required=['INTAKE_FIREBASE_PROJECT_ID','INTAKE_FIREBASE_STORAGE_BUCKET','INTAKE_FIREBASE_API_KEY','INTAKE_FIREBASE_AUTH_DOMAIN','INTAKE_ENCRYPTION_KEY','INTAKE_SESSION_KEY','INTAKE_STAFF_IDS','INTAKE_CLAMAV_HOST','INTAKE_CLAMAV_CLIENT_CERT','INTAKE_CLAMAV_CLIENT_KEY','INTAKE_SMTP_PASSWORD','INTAKE_PRIVACY_VERSION']
 export function configured() {
  return required.every(k=>Boolean(process.env[k]))&&/^[a-f0-9]{64}$/i.test(process.env.INTAKE_ENCRYPTION_KEY||'')&&/^[a-f0-9]{64}$/i.test(process.env.INTAKE_SESSION_KEY||'')&&process.env.INTAKE_COLLECTION_ENABLED==='true'&&process.env.INTAKE_SECURITY_VERIFIED==='true'&&process.env.INTAKE_MAIL_VERIFIED==='true'
 }
-export function db() {
- if(!process.env.SUPABASE_URL||!process.env.SUPABASE_SECRET_KEY)fail(503,'unavailable')
- return createClient(process.env.SUPABASE_URL,process.env.SUPABASE_SECRET_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}})
-}
+export function db() { return createFirebaseStore() }
 const must=result=>{if(result.error)fail(503,'unavailable');return result.data}
 const key=()=>process.env.INTAKE_ENCRYPTION_KEY
 export const pack=(value,context)=>encrypt(value,key(),context).toString('base64')
@@ -39,13 +36,14 @@ export function session(req) {
 }
 export async function staff(req,client=db()) {
  const match=/^Bearer (.+)$/.exec(req.headers.authorization||'');if(!match)fail(401,'unauthorised')
- const {data,error}=await client.auth.getUser(match[1])
- if(error||!data.user)fail(401,'unauthorised')
- let claims;try{claims=JSON.parse(Buffer.from(match[1].split('.')[1],'base64url').toString())}catch{fail(401,'unauthorised')}
- // Claims are used only after the Auth server has validated this exact token.
- if(claims.aal!=='aal2'||claims.sub!==data.user.id||claims.exp*1000<Date.now())fail(403,'mfa_required')
- if(!(process.env.INTAKE_STAFF_IDS||'').split(',').map(s=>s.trim()).includes(data.user.id))fail(403,'forbidden')
- return data.user.id
+ let claims,user
+ try{claims=await client.auth.verifyIdToken(match[1],true);user=await client.auth.getUser(claims.uid)}catch{fail(401,'unauthorised')}
+ if(user.disabled||!claims.email_verified||!user.emailVerified||claims.uid!==user.uid)fail(403,'forbidden')
+ const secondFactor=claims.firebase?.sign_in_second_factor
+ if(secondFactor!=='totp'||!claims.firebase?.second_factor_identifier||!user.multiFactor?.enrolledFactors?.some(f=>f.factorId==='totp'&&f.uid===claims.firebase.second_factor_identifier))fail(403,'mfa_required')
+ if(!Number.isFinite(claims.auth_time)||Date.now()/1000-claims.auth_time>3600)fail(401,'unauthorised')
+ if(!(process.env.INTAKE_STAFF_IDS||'').split(',').map(s=>s.trim()).includes(user.uid))fail(403,'forbidden')
+ return user.uid
 }
 export async function audit(client,actor,action,caseId=null) {
  must(await client.from('iila_audit').insert({actor_id:actor,action,case_id:caseId}))

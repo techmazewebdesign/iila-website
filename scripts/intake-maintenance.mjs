@@ -8,8 +8,7 @@ console.log(JSON.stringify({mode:apply?'apply':'dry-run',pendingNotifications:pe
 if(apply){
  for(const row of pending)try{await notify(client,row.id,row.reference)}catch{console.error('Notification remains pending')}
  for(const f of drafts){
-  must(await client.storage.from('iila-evidence').remove([f.id+'.enc']))
-  must(await client.from('iila_uploads').delete().eq('id',f.id).is('case_id',null))
+  await client.cleanupDraft(f.id,new Date(Date.now()-86400000).toISOString())
  }
  must(await client.from('iila_rates').delete().lt('window_start',new Date(Date.now()-2*86400000).toISOString()))
 }

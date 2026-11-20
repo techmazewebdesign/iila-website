@@ -2,7 +2,6 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
 import {readFile} from 'node:fs/promises'
-import {PGlite} from '@electric-sql/pglite'
 import {sections,visible,validate,cleanData,SCHEMA_VERSION} from '../src/intake/schema.js'
 import {encrypt,decrypt,issueSession,verifySession,hmac,validateFile} from '../server/intake/security.mjs'
 import {configured,staff} from '../server/intake/service.mjs'
@@ -63,15 +62,21 @@ test('file spoofing, active formats, malformed base64 and oversized images rejec
  {name:'test.png',type:'image/png',base64:Buffer.alloc(3145729).toString('base64')}
  ])assert.throws(()=>validateFile(data))
 })
-test('staff authorisation requires validated user, allowlist and aal2',async()=>{
- const id=crypto.randomUUID();process.env.INTAKE_STAFF_IDS=id
- const client={auth:{getUser:async()=>({data:{user:{id}},error:null})}}
- const req=aal=>({headers:{authorization:'Bearer e30.'+Buffer.from(JSON.stringify({sub:id,aal,exp:Math.floor(Date.now()/1000)+100})).toString('base64url')+'.signature'}})
+test('Firebase staff requires verified token, exact UID, verified email and enrolled TOTP',async()=>{
+ const uid='firebase-staff-fixture',factor='totp-fixture';process.env.INTAKE_STAFF_IDS=uid
+ const claims={uid,email_verified:true,auth_time:Date.now()/1000,firebase:{sign_in_second_factor:'totp',second_factor_identifier:factor}}
+ const user={uid,emailVerified:true,disabled:false,multiFactor:{enrolledFactors:[{uid:factor,factorId:'totp'}]}}
+ let revoked=false
+ const client={auth:{verifyIdToken:async(token,checkRevoked)=>{assert.equal(checkRevoked,true);if(revoked)throw new Error('Revoked');return claims},getUser:async()=>user}}
+ const req={headers:{authorization:'Bearer fictional-token'}}
  await assert.rejects(staff({headers:{}},client))
- await assert.rejects(staff(req('aal1'),client))
- assert.equal(await staff(req('aal2'),client),id)
- process.env.INTAKE_STAFF_IDS=crypto.randomUUID()
- await assert.rejects(staff(req('aal2'),client))
+ assert.equal(await staff(req,client),uid)
+ claims.firebase.sign_in_second_factor='phone';await assert.rejects(staff(req,client))
+ claims.firebase.sign_in_second_factor='totp';user.multiFactor.enrolledFactors=[];await assert.rejects(staff(req,client))
+ user.multiFactor.enrolledFactors=[{uid:factor,factorId:'totp'}];user.disabled=true;await assert.rejects(staff(req,client));user.disabled=false
+ claims.email_verified=false;await assert.rejects(staff(req,client));claims.email_verified=true
+ process.env.INTAKE_STAFF_IDS='someone-else';await assert.rejects(staff(req,client));process.env.INTAKE_STAFF_IDS=uid
+ revoked=true;await assert.rejects(staff(req,client))
 })
 function response(){return {headers:{},setHeader(k,v){this.headers[k]=v},status(n){this.statusCode=n;return this},json(v){this.body=v;return this},send(v){this.body=v;return this}}}
 test('unconfigured API is fail-closed; no false submission success',async()=>{
@@ -84,45 +89,6 @@ test('unconfigured API is fail-closed; no false submission success',async()=>{
  const cross=response();await handler({method:'POST',url:'/api/intake?action=submit',headers:{origin:'https://attacker.invalid','content-type':'application/json'},body:{}},cross)
  assert.equal(cross.statusCode,403)
  assert.ok(!JSON.stringify(blocked.body).includes('SUPABASE'))
-})
-test('database migration, RLS, rate limits, evidence ownership and idempotency',async()=>{
- const pg=new PGlite()
- await pg.exec("create role anon; create role authenticated; create role service_role bypassrls; create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);grant usage on schema storage to service_role;grant select on storage.buckets to service_role;")
- await pg.exec(await readFile(new URL('../database/iila-intake.sql',import.meta.url),'utf8'))
- let b=await pg.query("select public from storage.buckets where id='iila-evidence'");assert.equal(b.rows[0].public,false)
- await pg.exec('set role anon')
- await assert.rejects(pg.query('select * from public.iila_cases'))
- await assert.rejects(pg.query("select public.iila_rate_limit('x',1)"))
- await pg.exec('reset role;set role authenticated')
- await assert.rejects(pg.query('select * from public.iila_uploads'))
- await assert.rejects(pg.query('select * from public.iila_audit'))
- await pg.exec('reset role;set role service_role')
- for(let i=0;i<3;i++){const r=await pg.query("select public.iila_rate_limit('fakehash',2) as allowed");assert.equal(r.rows[0].allowed,i<2)}
- const id=crypto.randomUUID(),other=crypto.randomUUID(),caseId=crypto.randomUUID()
- await pg.query("select public.iila_reserve_upload($1,'owner-a')",[id])
- await pg.query("update public.iila_uploads set state='ready',metadata_sealed='encrypted' where id=$1",[id])
- await assert.rejects(pg.query("select public.iila_submit($1,'IILA-TEST','owner-b','ciphertext',$2::uuid[],true,'fa')",[caseId,[id]]))
- const first=await pg.query("select public.iila_submit($1,'IILA-TEST','owner-a','ciphertext',$2::uuid[],true,'fa') as reference",[caseId,[id]])
- assert.equal(first.rows[0].reference,'IILA-TEST')
- const retry=await pg.query("select public.iila_submit($1,'IILA-DUPLICATE','owner-a','ciphertext',$2::uuid[],true,'fa') as reference",[caseId,[id]])
- assert.equal(retry.rows[0].reference,'IILA-TEST')
- await assert.rejects(pg.query("select public.iila_submit($1,'IILA-THIEF','owner-b','ciphertext',$2::uuid[],true,'fa')",[caseId,[]]))
- for(let i=0;i<5;i++)await pg.query("select public.iila_reserve_upload($1,'owner-c')",[crypto.randomUUID()])
- await assert.rejects(pg.query("select public.iila_reserve_upload($1,'owner-c')",[other]))
- const count=await pg.query('select count(*)::int as n from public.iila_cases');assert.equal(count.rows[0].n,1)
- await pg.query("update public.iila_cases set created_at=now()-interval '100 years' where id=$1",[caseId])
- const retained=await pg.query('select verified_at from public.iila_cases where id=$1',[caseId])
- assert.equal(retained.rows[0].verified_at,null)
- // Pending and verified submissions remain present; no expiry column/job exists.
- const expiry=await pg.query("select column_name from information_schema.columns where table_name='iila_cases' and column_name='delete_after'")
- assert.equal(expiry.rows.length,0)
- await pg.query("update public.iila_cases set status='verified',verified_at=now() where id=$1",[caseId])
- const verified=await pg.query("select status,verified_at from public.iila_cases where id=$1",[caseId])
- assert.equal(verified.rows[0].status,'verified');assert.ok(verified.rows[0].verified_at)
- const maintenance=await readFile(new URL('../scripts/intake-maintenance.mjs',import.meta.url),'utf8')
- assert.ok(!maintenance.includes("from('iila_cases').delete()"))
- const attached=await pg.query("select state,case_id from public.iila_uploads where id=$1",[id]);assert.equal(attached.rows[0].state,'attached');assert.equal(attached.rows[0].case_id,caseId)
- await pg.close()
 })
 test('sensitive routes isolate analytics and reject framing',async()=>{
  const config=JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'))

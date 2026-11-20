@@ -1,5 +1,7 @@
 # IILA confidential intake — implementation and launch record
 
+> Superseded backend choice (2026-11-20): owner selected Firebase. See IILA_FIREBASE_SETUP.md for current setup and validation limits. Supabase/SQL details below describe the earlier prototype.
+
 Date: 2026-11-20. Base: origin/main 876ebf9.
 Branch: codex/iila-secure-intake-20261120.
 Implementation is a review preview, not an active confidential collection service.

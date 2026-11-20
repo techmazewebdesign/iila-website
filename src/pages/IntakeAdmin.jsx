@@ -1,5 +1,6 @@
 import {useState,useEffect,useRef} from 'react'
-import {createClient} from '@supabase/supabase-js'
+import {initializeApp,getApps} from '@firebase/app'
+import {initializeAuth,inMemoryPersistence,signInWithEmailAndPassword,signOut,getMultiFactorResolver,TotpMultiFactorGenerator} from '@firebase/auth'
 import {sections} from '../intake/schema'
 import {useLanguage} from '../context/LanguageContext'
 import './intake.css'
@@ -15,11 +16,11 @@ export default function IntakeAdmin(){
   if(body.operation==='download')return r.blob()
   return r.json()
  }
- const logout=async()=>{token.current=null;setCases([]);setSelected(null);setState('login');setPassword('');setOtp('');await client.current?.auth.signOut()}
+ const logout=async()=>{token.current=null;setCases([]);setSelected(null);setState('login');setPassword('');setOtp('');if(client.current)await signOut(client.current)}
  useEffect(()=>{
   fetch('/api/intake?action=config',{cache:'no-store'}).then(r=>r.json()).then(c=>{
-   if(!c.supabaseUrl||!c.publishableKey){setState('unconfigured');return}
-   client.current=createClient(c.supabaseUrl,c.publishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});setState('login')
+   if(!c.firebaseConfig){setState('unconfigured');return}
+   const app=getApps().find(a=>a.name==='iila-staff')||initializeApp(c.firebaseConfig,'iila-staff');client.current=initializeAuth(app,{persistence:inMemoryPersistence});setState('login')
   }).catch(()=>setState('unconfigured'))
  },[])
  useEffect(()=>{
@@ -30,15 +31,23 @@ export default function IntakeAdmin(){
  },[state])
  const run=async action=>{setBusy(true);setError('');try{await action()}catch{setError(tr('Access or action unavailable. Check staff permissions and MFA; sign in again if needed.','دسترسی یا عملیات در دسترس نیست. مجوز و احراز هویت دومرحله‌ای را بررسی و در صورت نیاز دوباره وارد شوید.'))}finally{setBusy(false)}}
  const login=async e=>{e.preventDefault();await run(async()=>{
-  const r=await client.current.auth.signInWithPassword({email,password});setPassword('')
-  if(r.error)throw r.error
-  const factors=await client.current.auth.mfa.listFactors();const f=factors.data?.totp?.find(x=>x.status==='verified')
-  if(!f){await client.current.auth.signOut();setError(tr('A pre-enrolled authenticator and explicit staff authorisation are required. Contact the IILA administrator.','فعال‌سازی قبلی برنامه رمزساز و مجوز صریح کارکنان لازم است. با مدیر انجمن تماس بگیرید.'));return}
-  setFactor(f.id);setState('mfa')
+  try{
+   await signInWithEmailAndPassword(client.current,email,password)
+   await signOut(client.current)
+   throw new Error('MFA is required')
+  }catch(err){
+   if(err.code!=='auth/multi-factor-auth-required')throw err
+   const resolver=getMultiFactorResolver(client.current,err)
+   const index=resolver.hints.findIndex(h=>h.factorId===TotpMultiFactorGenerator.FACTOR_ID)
+   if(index<0)throw new Error('An enrolled authenticator is required')
+   setFactor({resolver,index});setState('mfa')
+  }finally{setPassword('')}
  })}
  const verify=async e=>{e.preventDefault();await run(async()=>{
-  const r=await client.current.auth.mfa.challengeAndVerify({factorId:factor,code:otp});setOtp('');if(r.error)throw r.error
-  const s=await client.current.auth.getSession();token.current=s.data.session?.access_token
+  const hint=factor.resolver.hints[factor.index]
+  const assertion=TotpMultiFactorGenerator.assertionForSignIn(hint.uid,otp)
+  const credential=await factor.resolver.resolveSignIn(assertion);setOtp('');setFactor(null)
+  token.current=await credential.user.getIdToken()
   const result=await api({operation:'list'});setCases(result.cases);setState('ready')
  })}
  const detail=id=>run(async()=>setSelected((await api({operation:'detail',id})).case))
