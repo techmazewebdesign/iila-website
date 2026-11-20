@@ -5,8 +5,8 @@ Branch: codex/iila-secure-intake-20261120.
 Implementation is a review preview, not an active confidential collection service.
 
 ## Review URLs
-- English: https://iila-website-3vfxaj41v-techmazewebdesigns-projects.vercel.app/human-rights-complaint
-- Persian: https://iila-website-3vfxaj41v-techmazewebdesigns-projects.vercel.app/fa/human-rights-complaint
+- English: https://iila-website-8nany7e5g-techmazewebdesigns-projects.vercel.app/human-rights-complaint
+- Persian: https://iila-website-8nany7e5g-techmazewebdesigns-projects.vercel.app/fa/human-rights-complaint
 - Staff: /intake-admin (and /fa/intake-admin).
 - Privacy: /intake-privacy (and /fa/intake-privacy).
 
