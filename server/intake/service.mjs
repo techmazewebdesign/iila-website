@@ -4,11 +4,11 @@ import nodemailer from 'nodemailer'
 import sharp from 'sharp'
 import {SCHEMA_VERSION,validate,cleanData,MAX_FILES} from '../../src/intake/schema.js'
 import {encrypt,decrypt,hmac,equal,issueSession,verifySession,validateFile,clam,fail} from './security.mjs'
-export const STATUSES=['received','awaiting_review','legal_review','needs_evidence','documenting','ready_for_decision','referred','closed']
+export const STATUSES=['received','awaiting_review','legal_review','needs_evidence','documenting','ready_for_decision','verified','referred','closed']
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const required=['SUPABASE_URL','SUPABASE_SECRET_KEY','SUPABASE_PUBLISHABLE_KEY','INTAKE_ENCRYPTION_KEY','INTAKE_SESSION_KEY','INTAKE_STAFF_IDS','INTAKE_CLAMAV_HOST','INTAKE_CLAMAV_CLIENT_CERT','INTAKE_CLAMAV_CLIENT_KEY','INTAKE_SMTP_PASSWORD','INTAKE_PRIVACY_VERSION','INTAKE_RETENTION_DAYS']
+const required=['SUPABASE_URL','SUPABASE_SECRET_KEY','SUPABASE_PUBLISHABLE_KEY','INTAKE_ENCRYPTION_KEY','INTAKE_SESSION_KEY','INTAKE_STAFF_IDS','INTAKE_CLAMAV_HOST','INTAKE_CLAMAV_CLIENT_CERT','INTAKE_CLAMAV_CLIENT_KEY','INTAKE_SMTP_PASSWORD','INTAKE_PRIVACY_VERSION']
 export function configured() {
- return required.every(k=>Boolean(process.env[k]))&&/^[a-f0-9]{64}$/i.test(process.env.INTAKE_ENCRYPTION_KEY||'')&&/^[a-f0-9]{64}$/i.test(process.env.INTAKE_SESSION_KEY||'')&&process.env.INTAKE_COLLECTION_ENABLED==='true'&&process.env.INTAKE_SECURITY_VERIFIED==='true'&&process.env.INTAKE_MAIL_VERIFIED==='true'&&/^[1-9]\d{0,3}$/.test(process.env.INTAKE_RETENTION_DAYS||'')
+ return required.every(k=>Boolean(process.env[k]))&&/^[a-f0-9]{64}$/i.test(process.env.INTAKE_ENCRYPTION_KEY||'')&&/^[a-f0-9]{64}$/i.test(process.env.INTAKE_SESSION_KEY||'')&&process.env.INTAKE_COLLECTION_ENABLED==='true'&&process.env.INTAKE_SECURITY_VERIFIED==='true'&&process.env.INTAKE_MAIL_VERIFIED==='true'
 }
 export function db() {
  if(!process.env.SUPABASE_URL||!process.env.SUPABASE_SECRET_KEY)fail(503,'unavailable')
@@ -77,7 +77,7 @@ export async function submit(client,req,body) {
  const reference='IILA-'+new Date().getUTCFullYear()+'-'+crypto.randomBytes(8).toString('hex').toUpperCase()
  const id=body.requestId
  const sealed=pack({answers:data,schemaVersion:SCHEMA_VERSION,privacyVersion:process.env.INTAKE_PRIVACY_VERSION,receivedAt:new Date().toISOString()},'case:'+id)
- const result=must(await client.rpc('iila_submit',{p_id:id,p_reference:reference,p_owner:owner,p_sealed:sealed,p_files:body.fileIds,p_risk:data.securityRisk!=='no',p_language:body.language==='fa'?'fa':'en',p_retention:Number(process.env.INTAKE_RETENTION_DAYS)}))
+ const result=must(await client.rpc('iila_submit',{p_id:id,p_reference:reference,p_owner:owner,p_sealed:sealed,p_files:body.fileIds,p_risk:data.securityRisk!=='no',p_language:body.language==='fa'?'fa':'en'}))
  // An accepted case remains durable if SMTP is temporarily unavailable.
  try{await notify(client,id,result)}catch{}
  return {reference:result}
@@ -100,12 +100,12 @@ export async function admin(client,req,body) {
  if(body.operation==='detail'){
   await audit(client,actor,'case_read',row.id)
   const uploads=must(await client.from('iila_uploads').select('id,metadata_sealed').eq('case_id',row.id).eq('state','attached'))
-  return {case:{id:row.id,reference:row.reference,status:row.status,high_risk:row.high_risk,...unpack(row.payload_sealed,'case:'+row.id),notes:row.notes_sealed?unpack(row.notes_sealed,'notes:'+row.id):'',files:uploads.map(f=>({id:f.id,...unpack(f.metadata_sealed,'metadata:'+f.id)}))}}
+  return {case:{id:row.id,reference:row.reference,status:row.status,verified_at:row.verified_at,high_risk:row.high_risk,...unpack(row.payload_sealed,'case:'+row.id),notes:row.notes_sealed?unpack(row.notes_sealed,'notes:'+row.id):'',files:uploads.map(f=>({id:f.id,...unpack(f.metadata_sealed,'metadata:'+f.id)}))}}
  }
  if(body.operation==='update'){
   if(!STATUSES.includes(body.status)||typeof body.notes!=='string'||body.notes.length>12000)fail(400,'invalid_request')
   await audit(client,actor,'case_update',row.id)
-  must(await client.from('iila_cases').update({status:body.status,notes_sealed:pack(body.notes,'notes:'+row.id)}).eq('id',row.id))
+  must(await client.from('iila_cases').update({status:body.status,notes_sealed:pack(body.notes,'notes:'+row.id),...(body.status==='verified'&&!row.verified_at?{verified_at:new Date().toISOString()}:{})}).eq('id',row.id))
   return {ok:true}
  }
  if(body.operation==='retry_notification'){

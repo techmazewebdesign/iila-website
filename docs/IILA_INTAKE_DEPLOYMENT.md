@@ -63,10 +63,9 @@ scripts/fonts, including Vercel's injected preview-feedback script. The public
 website's analytics remain in place. No case values are sent to analytics or AI.
 
 ## Launch configuration — all currently missing
-1. Choose organisation ownership for a dedicated IILA Supabase project. The only
-   connected organisation is named "Deutsch Pilot"; do not create a project there
-   without the owner's organisation choice. Do not put IILA cases in its existing
-   Deutsch Project database. Prefer an IILA-controlled project in Zurich if approved.
+1. Owner decision (2026-11-20): this is independent of DeutschPilot. Owner/admin
+   mailbox is info@iila-swiss.org. Create or connect an IILA-owned organisation/account;
+   never provision inside the connected Deutsch Pilot organisation.
 2. Provision dedicated Supabase database/Auth/Storage; disable public signup; apply
    database/iila-intake.sql after inspecting the new project. Verify no unexpected
    policies grant access to the evidence bucket; confirm it is private.
@@ -82,7 +81,11 @@ website's analytics remain in place. No case values are sent to analytics or AI.
    Hostinger connector is currently scoped to info@plucogroup.com only. Do not copy
    unrelated mailbox credentials or change the IILA password. Verify SMTP acceptance
    AND received inbox delivery of a clearly marked fictional test.
-6. IILA must decide controller postal details, retention days, backup expiry,
+6. Owner-approved retention: submitted cases/evidence have no time limit while
+   verification is pending. Verification is an explicit staff status and timestamp;
+   it does not automatically delete the case. No expiry column or case-purge job
+   exists. Any later retention/deletion rule needs a separate IILA decision.
+   IILA must decide controller postal details, backup handling,
    processor regions/terms, safe rights-verification procedure, emergency contact,
    incident response owner, and staff disclosure authority. Replace the draft privacy
    notice and matching form text with the approved concrete policy.
@@ -91,10 +94,9 @@ website's analytics remain in place. No case values are sent to analytics or AI.
    one master key: do not rotate it without a re-encryption/key-version migration.
 8. Schedule and monitor the maintenance operator job only after retention approval.
    Dry-run: npm run intake:maintenance. Apply: npm run intake:maintenance -- --apply.
-   It retries notifications, removes abandoned uploads after 24h, and purges expired
-   non-held cases (storage first, then rows). Deletion from provider backups is
-   governed by the approved provider expiry policy, not immediate database deletion.
-   Legal holds are operator-managed in the database; no staff UI for holds yet.
+   It retries notifications and removes abandoned uploads after 24h. It never deletes
+   submitted cases or their attached evidence, including after verification.
+   Any future explicit deletion process must address backups and legal holds.
 9. Complete real staged upload, DB persistence, staff access, notification delivery,
    removal/restore and security review, then record evidence. Set verification flags
    only after those checks; never bypass a failed dependency to enable collection.
@@ -109,16 +111,17 @@ INTAKE_STAFF_IDS (comma-separated exact user UUIDs),
 INTAKE_CLAMAV_HOST, INTAKE_CLAMAV_PORT, INTAKE_CLAMAV_CA if privately issued,
 INTAKE_CLAMAV_CLIENT_CERT, INTAKE_CLAMAV_CLIENT_KEY,
 INTAKE_SMTP_PASSWORD, INTAKE_ORIGIN=https://iila-swiss.org,
-INTAKE_PRIVACY_VERSION, INTAKE_RETENTION_DAYS,
+INTAKE_PRIVACY_VERSION,
 INTAKE_SECURITY_VERIFIED=true, INTAKE_MAIL_VERIFIED=true,
 INTAKE_COLLECTION_ENABLED=true.
 
-No secrets have been created or committed. Production origin collection remains
+No secrets have been created or committed. Ownership and pending-case retention
+were explicitly confirmed by the owner; IILA account connection remains pending. Production origin collection remains
 closed unless all required configuration and explicit verification flags are set.
 
 ## Remaining product limits
 - Latest 100 cases are searchable locally by reference/date/status. Category search,
-  pagination, reviewed exports and a full legal-hold/deletion UI remain future work.
+  pagination, reviewed exports and a full legal-hold/explicit-deletion UI remain future work.
 - Gregorian exact dates are ISO YYYY-MM-DD; Persian/approximate dates are preserved
   as stated, with their calendar, rather than silently converted inaccurately.
 - The availability/config endpoint checks private storage, schema and scanner.

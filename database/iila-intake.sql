@@ -2,9 +2,9 @@
 begin;
 create table public.iila_cases (
  id uuid primary key, reference text unique not null, owner_hash text not null,
- created_at timestamptz not null default now(), delete_after timestamptz not null,
+ created_at timestamptz not null default now(), verified_at timestamptz,
  legal_hold boolean not null default false,
- status text not null default 'received' check(status in ('received','awaiting_review','legal_review','needs_evidence','documenting','ready_for_decision','referred','closed')),
+ status text not null default 'received' check(status in ('received','awaiting_review','legal_review','needs_evidence','documenting','ready_for_decision','verified','referred','closed')),
  high_risk boolean not null, language text not null check(language in ('en','fa')),
  payload_sealed text not null, notes_sealed text, notified_at timestamptz
 );
@@ -60,7 +60,7 @@ begin
  insert into public.iila_uploads(id,owner_hash,state) values(p_id,p_owner,'reserved');
  return 'reserved';
 end $$;
-create function public.iila_submit(p_id uuid,p_reference text,p_owner text,p_sealed text,p_files uuid[],p_risk boolean,p_language text,p_retention int)
+create function public.iila_submit(p_id uuid,p_reference text,p_owner text,p_sealed text,p_files uuid[],p_risk boolean,p_language text)
  returns text language plpgsql security invoker set search_path='' as $$
 declare previous public.iila_cases; n int;
 begin
@@ -70,16 +70,16 @@ begin
   if previous.owner_hash<>p_owner then raise exception 'invalid_request';end if;
   return previous.reference;
  end if;
- if p_retention<1 or p_retention>9999 or cardinality(p_files)>5 then raise exception 'invalid_request';end if;
+ if cardinality(p_files)>5 then raise exception 'invalid_request';end if;
  select count(*) into n from public.iila_uploads where id=any(p_files) and owner_hash=p_owner and state='ready' and created_at>now()-interval '1 hour';
  if n<>cardinality(p_files) then raise exception 'invalid_evidence';end if;
- insert into public.iila_cases(id,reference,owner_hash,payload_sealed,high_risk,language,delete_after)
- values(p_id,p_reference,p_owner,p_sealed,p_risk,p_language,now()+pg_catalog.make_interval(days=>p_retention));
+ insert into public.iila_cases(id,reference,owner_hash,payload_sealed,high_risk,language)
+ values(p_id,p_reference,p_owner,p_sealed,p_risk,p_language);
  update public.iila_uploads set case_id=p_id,state='attached' where id=any(p_files);
  return p_reference;
 end $$;
-revoke all on function public.iila_ready(),public.iila_rate_limit(text,int),public.iila_reserve_upload(uuid,text),public.iila_submit(uuid,text,text,text,uuid[],boolean,text,int) from public,anon,authenticated;
-grant execute on function public.iila_ready(),public.iila_rate_limit(text,int),public.iila_reserve_upload(uuid,text),public.iila_submit(uuid,text,text,text,uuid[],boolean,text,int) to service_role;
+revoke all on function public.iila_ready(),public.iila_rate_limit(text,int),public.iila_reserve_upload(uuid,text),public.iila_submit(uuid,text,text,text,uuid[],boolean,text) from public,anon,authenticated;
+grant execute on function public.iila_ready(),public.iila_rate_limit(text,int),public.iila_reserve_upload(uuid,text),public.iila_submit(uuid,text,text,text,uuid[],boolean,text) to service_role;
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
  values('iila-evidence','iila-evidence',false,3145828,array['application/octet-stream']);
 -- No Storage policies for anon/authenticated: access only through the authorised server.
