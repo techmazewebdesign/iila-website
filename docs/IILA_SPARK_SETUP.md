@@ -25,3 +25,9 @@ This supersedes the Cloud Storage/Blaze parts of IILA_FIREBASE_SETUP.md. Owner r
 4. Provision a real malware-scanning endpoint with mTLS. ClamAV software is free, but no always-on scanner host has been provisioned. Do not bypass scanning or claim an all-free fully operational production service before hosting and uptime are resolved.
 5. Arrange secure backup/key recovery suitable for this evidence; paid managed Firestore backup features are not included on Spark. Finalise operational/privacy details.
 6. Perform full browser submission/upload, unauthorised/staff/MFA tests and scanner checks before enabling collection. Public intake is still closed.
+
+## Staff setup follow-up
+- Staff account info@iila-swiss.org exists; email verification and TOTP enrolment are owner actions, not automatically marked complete.
+- Added server-validated allowlisted setup-status endpoint. Password-only login permits only email verification/authenticator setup; all case APIs still require validated enrolled TOTP. Tokens, pending secret and case state remain memory-only with ten-minute idle sign-out.
+- Dedicated server identity iila-intake-server has only datastore.user and firebaseauth.viewer roles in the IILA project. The developer CLI identity is not deployed. Runtime credential, encryption/session keys and staff UID are encrypted preview environment settings; collection/security/mail flags stay false. Operator recovery copies are protected outside the repository. No production environment settings or live collection changed.
+- Node 24 is pinned. Firebase Admin 14.5.1 uses a compatibility pin of jwks-rsa 3.2.2 because the hosting runtime rejects the ESM-only transitive dependency in jwks-rsa 4. Regression covers server import with require-of-ESM disabled. All 23 tests/build pass; production audit zero known vulnerabilities.
