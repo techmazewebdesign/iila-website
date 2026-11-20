@@ -11,7 +11,7 @@ Firebase is the owner's latest choice. This supersedes Supabase provisioning in 
 - Draft cleanup locks abandoned uploads before deleting, preventing attachment races. Submitted evidence is never purged by maintenance.
 
 ## Required live setup
-1. Independent IILA-owned Google/Firebase project administered through info@iila-swiss.org. Current console defaults to music4club@gmail.com and blocks access until Google 2SV. CLI uses a different developer account; do not substitute ownership silently.
+1. Owner authorised Techmaze Web Design (techmazewebdesign@gmail.com) to own/manage the dedicated IILA Firebase project. IILA remains separate from DeutschPilot. Operational notification mailbox stays info@iila-swiss.org.
 2. Owner completes account security. Select/create IILA project and choose database/storage location. Do not link billing or enable paid services without owner authorisation.
 3. Provision Firestore and private Cloud Storage, enforce public access prevention/uniform access, inspect IAM and deploy firestore.rules/storage.rules from this repository only.
 4. Configure Firebase Auth with Identity Platform for TOTP and verified staff emails. Staff enrol their own passwords/authenticators. Require the exact server UID allowlist; never treat any signed-in user as staff.
@@ -24,3 +24,11 @@ Firebase is the owner's latest choice. This supersedes Supabase provisioning in 
 Firestore adapter tests use a transaction test double. They do not certify hosted transactions, deployed rules or IAM. Java was not available for emulator execution. Real project provisioning, upload/mail delivery and full browser submission remain pending.
 
 Local validation: 16 tests passed; production build passed; npm audit --omit=dev reports zero known vulnerabilities. Browser-only app/auth packages are pinned; unused browser Firestore package was removed. Live Firebase verification remains pending.
+
+## Provisioned 2026-11-20 under owner-authorised Techmaze account
+- Project iila-swiss-intake (project number 43735076379), display name IILA Confidential Intake. Current plan Spark; no billing account linked.
+- Web app IILA Intake Staff: 1:43735076379:web:758083ccdefcd207c332be.
+- Firestore (default), Standard/Native, europe-west6 (Zurich, Switzerland), free tier, deletion protection enabled.
+- Firestore rules compiled and released; index deployed. Live unauthenticated collection-list attempt returned HTTP 403 PERMISSION_DENIED with no documents.
+- No applicant submissions stored; server credentials, Auth/TOTP, scanner, SMTP and website runtime connection remain unconfigured.
+- Firebase Storage page explicitly requires upgrade. Billing dialog offers existing Firebase Payment and My Billing Account accounts. No account selected and no upgrade performed. Owner must authorise usage-based Blaze billing and choose the billing account before uploads can be provisioned.
