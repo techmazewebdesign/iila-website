@@ -26,7 +26,8 @@ export async function limited(client,req,kind) {
  if(!allowed)fail(429,'rate_limited')
 }
 export function origin(req) {
- if(req.headers.origin!==(process.env.INTAKE_ORIGIN||'https://iila-swiss.org'))fail(403,'forbidden')
+ const expected=process.env.VERCEL_ENV==='preview'&&process.env.VERCEL_URL?'https://'+process.env.VERCEL_URL:(process.env.INTAKE_ORIGIN||'https://iila-swiss.org')
+ if(req.headers.origin!==expected)fail(403,'forbidden')
  if(req.headers['sec-fetch-site']&&req.headers['sec-fetch-site']!=='same-origin')fail(403,'forbidden')
 }
 export function session(req) {
@@ -34,15 +35,25 @@ export function session(req) {
  if(!equal(req.headers['x-csrf-token'],hmac('csrf:'+token)))fail(403,'forbidden')
  return hmac('session:'+token)
 }
-export async function staff(req,client=db()) {
+async function staffIdentity(req,client){
  const match=/^Bearer (.+)$/.exec(req.headers.authorization||'');if(!match)fail(401,'unauthorised')
  let claims,user
  try{claims=await client.auth.verifyIdToken(match[1],true);user=await client.auth.getUser(claims.uid)}catch{fail(401,'unauthorised')}
- if(user.disabled||!claims.email_verified||!user.emailVerified||claims.uid!==user.uid)fail(403,'forbidden')
- const secondFactor=claims.firebase?.sign_in_second_factor
- if(secondFactor!=='totp'||!claims.firebase?.second_factor_identifier||!user.multiFactor?.enrolledFactors?.some(f=>f.factorId==='totp'&&f.uid===claims.firebase.second_factor_identifier))fail(403,'mfa_required')
+ if(user.disabled||claims.uid!==user.uid)fail(403,'forbidden')
  if(!Number.isFinite(claims.auth_time)||Date.now()/1000-claims.auth_time>3600)fail(401,'unauthorised')
  if(!(process.env.INTAKE_STAFF_IDS||'').split(',').map(s=>s.trim()).includes(user.uid))fail(403,'forbidden')
+ return {claims,user}
+}
+export async function setupStaff(req,client=db()){
+ const {claims,user}=await staffIdentity(req,client)
+ // Only account-setup status is disclosed. Case access always requires MFA below.
+ return {emailVerified:!!(claims.email_verified&&user.emailVerified),totpEnrolled:!!user.multiFactor?.enrolledFactors?.some(f=>f.factorId==='totp')}
+}
+export async function staff(req,client=db()) {
+ const {claims,user}=await staffIdentity(req,client)
+ if(!claims.email_verified||!user.emailVerified)fail(403,'forbidden')
+ const secondFactor=claims.firebase?.sign_in_second_factor
+ if(secondFactor!=='totp'||!claims.firebase?.second_factor_identifier||!user.multiFactor?.enrolledFactors?.some(f=>f.factorId==='totp'&&f.uid===claims.firebase.second_factor_identifier))fail(403,'mfa_required')
  return user.uid
 }
 export async function audit(client,actor,action,caseId=null) {

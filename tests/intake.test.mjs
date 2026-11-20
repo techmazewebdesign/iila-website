@@ -4,7 +4,7 @@ import crypto from 'node:crypto'
 import {readFile} from 'node:fs/promises'
 import {sections,visible,validate,cleanData,SCHEMA_VERSION} from '../src/intake/schema.js'
 import {encrypt,decrypt,issueSession,verifySession,hmac,validateFile} from '../server/intake/security.mjs'
-import {configured,staff} from '../server/intake/service.mjs'
+import {configured,staff,setupStaff,origin} from '../server/intake/service.mjs'
 import handler from '../api/intake.js'
 
 process.env.INTAKE_SESSION_KEY='ab'.repeat(32)
@@ -159,4 +159,27 @@ test('TLS scanner validates images, rejects malware, and notifications omit case
   await new Promise(resolve=>server.close(resolve));delete process.env.INTAKE_CLAMAV_CLIENT_CERT;delete process.env.INTAKE_CLAMAV_CLIENT_KEY;delete process.env.INTAKE_CLAMAV_CA;delete process.env.INTAKE_CLAMAV_HOST;delete process.env.INTAKE_CLAMAV_PORT
   await rm(dir,{recursive:true,force:true})
  }
+})
+
+test('staff setup exposes only setup status and never bypasses MFA for cases',async()=>{
+ const uid='setup-staff-fixture';process.env.INTAKE_STAFF_IDS=uid
+ const user={uid,emailVerified:false,disabled:false,multiFactor:{enrolledFactors:[]}}
+ const claims={uid,email_verified:false,auth_time:Date.now()/1000,firebase:{}}
+ const client={auth:{verifyIdToken:async()=>claims,getUser:async()=>user}}
+ const req={headers:{authorization:'Bearer fictional'}}
+ assert.deepEqual(await setupStaff(req,client),{emailVerified:false,totpEnrolled:false})
+ await assert.rejects(staff(req,client))
+ user.emailVerified=true;claims.email_verified=true
+ assert.deepEqual(await setupStaff(req,client),{emailVerified:true,totpEnrolled:false})
+ await assert.rejects(staff(req,client))
+ process.env.INTAKE_STAFF_IDS='different-staff';await assert.rejects(setupStaff(req,client))
+})
+test('preview setup accepts only its exact deployment origin',()=>{
+ const previous={VERCEL_ENV:process.env.VERCEL_ENV,VERCEL_URL:process.env.VERCEL_URL}
+ process.env.VERCEL_ENV='preview';process.env.VERCEL_URL='iila-fictional.vercel.app'
+ try{
+  assert.doesNotThrow(()=>origin({headers:{origin:'https://iila-fictional.vercel.app','sec-fetch-site':'same-origin'}}))
+  assert.throws(()=>origin({headers:{origin:'https://other-preview.vercel.app'}}))
+  assert.throws(()=>origin({headers:{origin:'https://iila-swiss.org'}}))
+ }finally{for(const [k,v] of Object.entries(previous)){if(v===undefined)delete process.env[k];else process.env[k]=v}}
 })

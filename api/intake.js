@@ -1,4 +1,4 @@
-import {configured,ready,db,origin,limited,session,issueSession,hmac,upload,submit,admin} from '../server/intake/service.mjs'
+import {configured,ready,db,origin,limited,session,issueSession,hmac,upload,submit,admin,setupStaff} from '../server/intake/service.mjs'
 export const config={maxDuration:60,api:{bodyParser:{sizeLimit:'4300kb'}}}
 export default async function handler(req,res) {
  res.setHeader('Cache-Control','no-store, max-age=0')
@@ -18,6 +18,10 @@ export default async function handler(req,res) {
   const body=req.body
   if(!body||typeof body!=='object'||Array.isArray(body))return res.status(400).json({code:'invalid_request'})
   if(Buffer.byteLength(JSON.stringify(body))>4300*1024)return res.status(413).json({code:'invalid_request'})
+  if(action==='staff-setup'){
+   const client=db();await limited(client,req,'staff-setup')
+   return res.status(200).json(await setupStaff(req,client))
+  }
   if(action==='admin'){
    const result=await admin(db(),req,body)
    if(result.download){res.setHeader('Content-Type','application/octet-stream');res.setHeader('Content-Disposition','attachment; filename="IILA-evidence-original.bin"');return res.status(200).send(result.download)}
