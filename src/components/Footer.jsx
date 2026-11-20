@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import IILALogo from './IILALogo'
 import { useTranslation } from '../i18n'
+import { useLanguage } from '../context/LanguageContext'
 
 export default function Footer() {
   const t = useTranslation()
+  const { lang } = useLanguage()
   const year = new Date().getFullYear()
 
   const cols = [
@@ -22,6 +24,7 @@ export default function Footer() {
       items: [
         { label: t.header.publications,  to: '/publications' },
         { label: t.header.humanRights === 'حقوق بشر' ? 'حقوق بشر' : 'Human Rights', to: '/human-rights' },
+    { label: lang === 'fa' ? 'ثبت درخواست حقوق بشر' : 'Human Rights Intake', to: lang === 'fa' ? '/fa/human-rights-complaint' : '/human-rights-complaint' },
         { label: 'Legal Roadmap',        to: '/roadmap' },
         { label: 'Media & Commentary',   to: '/media' },
       ],

@@ -1,10 +1,13 @@
 import { BrowserRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { ThemeProvider } from './context/ThemeContext'
 import { LanguageProvider } from './context/LanguageContext'
 import Header from './components/Header'
 import Footer from './components/Footer'
 import Home from './pages/Home'
+const HumanRightsComplaint = lazy(() => import('./pages/HumanRightsComplaint'))
+const IntakeAdmin = lazy(() => import('./pages/IntakeAdmin'))
+const IntakePrivacy = lazy(() => import('./pages/IntakePrivacy'))
 import About from './pages/About'
 import Mission from './pages/Mission'
 import Publications from './pages/Publications'
@@ -46,6 +49,9 @@ function LocalePathSync() {
 
 const pageRoutes = [
   ['/', Home],
+  ['/human-rights-complaint', HumanRightsComplaint],
+  ['/intake-admin', IntakeAdmin],
+  ['/intake-privacy', IntakePrivacy],
   ['/about', About],
   ['/mission', Mission],
   ['/publications', Publications],
@@ -74,8 +80,8 @@ function App() {
                 {pageRoutes.flatMap(([path, Component]) => {
                   const faPath = path === '/' ? '/fa/' : `/fa${path}`
                   return [
-                    <Route key={path} path={path} element={<Component />} />,
-                    <Route key={faPath} path={faPath} element={<Component />} />,
+                    <Route key={path} path={path} element={<Suspense fallback={<div className="pt-40 text-center">IILA…</div>}><Component /></Suspense>} />,
+                    <Route key={faPath} path={faPath} element={<Suspense fallback={<div className="pt-40 text-center">IILA…</div>}><Component /></Suspense>} />,
                   ]
                 })}
               </Routes>

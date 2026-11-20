@@ -8,3 +8,7 @@ dist/
 netlify.toml
 windsurf_deployment.yaml
 .vercel
+
+# Intake runtime secrets
+.env*
+!.env.intake.example
