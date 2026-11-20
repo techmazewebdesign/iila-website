@@ -6,7 +6,7 @@ import {SCHEMA_VERSION,validate,cleanData,MAX_FILES} from '../../src/intake/sche
 import {encrypt,decrypt,hmac,equal,issueSession,verifySession,validateFile,clam,fail} from './security.mjs'
 export const STATUSES=['received','awaiting_review','legal_review','needs_evidence','documenting','ready_for_decision','verified','referred','closed']
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const required=['INTAKE_FIREBASE_PROJECT_ID','INTAKE_FIREBASE_STORAGE_BUCKET','INTAKE_FIREBASE_API_KEY','INTAKE_FIREBASE_AUTH_DOMAIN','INTAKE_ENCRYPTION_KEY','INTAKE_SESSION_KEY','INTAKE_STAFF_IDS','INTAKE_CLAMAV_HOST','INTAKE_CLAMAV_CLIENT_CERT','INTAKE_CLAMAV_CLIENT_KEY','INTAKE_SMTP_PASSWORD','INTAKE_PRIVACY_VERSION']
+const required=['INTAKE_FIREBASE_PROJECT_ID','INTAKE_FIREBASE_API_KEY','INTAKE_FIREBASE_AUTH_DOMAIN','INTAKE_ENCRYPTION_KEY','INTAKE_SESSION_KEY','INTAKE_STAFF_IDS','INTAKE_CLAMAV_HOST','INTAKE_CLAMAV_CLIENT_CERT','INTAKE_CLAMAV_CLIENT_KEY','INTAKE_SMTP_PASSWORD','INTAKE_PRIVACY_VERSION']
 export function configured() {
  return required.every(k=>Boolean(process.env[k]))&&/^[a-f0-9]{64}$/i.test(process.env.INTAKE_ENCRYPTION_KEY||'')&&/^[a-f0-9]{64}$/i.test(process.env.INTAKE_SESSION_KEY||'')&&process.env.INTAKE_COLLECTION_ENABLED==='true'&&process.env.INTAKE_SECURITY_VERIFIED==='true'&&process.env.INTAKE_MAIL_VERIFIED==='true'
 }

@@ -62,14 +62,13 @@ test('draft cleanup cannot remove attached evidence regardless of age',async()=>
  assert.ok(records.has('iila_uploads/attached'))
  assert.equal(records.has('iila_uploads/draft'),false)
 })
-test('bucket readiness rejects public or legacy ACL configurations',async()=>{
- const fs={}
- for(const iamConfiguration of [{},{publicAccessPrevention:'inherited',uniformBucketLevelAccess:{enabled:true}},{publicAccessPrevention:'enforced',uniformBucketLevelAccess:{enabled:false}}]){
-  const store=new FirebaseStore(fs,{getMetadata:async()=>[{iamConfiguration}]},{})
+test('evidence readiness fails closed on unavailable or exhausted storage',async()=>{
+ for(const ready of [async()=>false,async()=>{throw new Error('Unavailable')}]){
+  const store=new FirebaseStore({},{ready},{})
   assert.ok((await store.storage.getBucket()).error)
  }
- const store=new FirebaseStore(fs,{getMetadata:async()=>[{iamConfiguration:{publicAccessPrevention:'enforced',uniformBucketLevelAccess:{enabled:true}}}]},{})
- assert.equal((await store.storage.getBucket()).data.public,false)
+ const store=new FirebaseStore({},{ready:async()=>true},{})
+ assert.equal((await store.storage.getBucket()).data.backend,'firestore-spark')
 })
 test('client access is denied to all intake documents and evidence',async()=>{
  for(const path of ['firestore.rules','storage.rules']){

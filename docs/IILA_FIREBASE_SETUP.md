@@ -1,5 +1,7 @@
 # IILA Firebase migration — 2026-11-20
 
+> Current no-billing implementation: see IILA_SPARK_SETUP.md. Cloud Storage/Blaze steps below are historical and are not required by the current bounded Firestore evidence store.
+
 Firebase is the owner's latest choice. This supersedes Supabase provisioning in IILA_INTAKE_DEPLOYMENT.md. The SQL prototype is historical, not the Firebase deployment schema.
 
 ## Implemented, not activated

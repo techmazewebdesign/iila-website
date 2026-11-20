@@ -1,7 +1,7 @@
 import {getApps,initializeApp,applicationDefault,cert} from 'firebase-admin/app'
 import {getFirestore} from 'firebase-admin/firestore'
 import {getAuth} from 'firebase-admin/auth'
-import {getStorage} from 'firebase-admin/storage'
+import {FirestoreEvidence} from './firestore-evidence.mjs'
 
 const now=()=>new Date().toISOString()
 const expired=value=>Date.parse(value)<Date.now()-3600000
@@ -15,7 +15,7 @@ export function firebaseApp(){
  if(!app){
   const raw=process.env.INTAKE_FIREBASE_SERVICE_ACCOUNT
   const credential=raw?cert(JSON.parse(raw)):applicationDefault()
-  app=initializeApp({projectId,credential,storageBucket:process.env.INTAKE_FIREBASE_STORAGE_BUCKET},'iila-intake')
+  app=initializeApp({projectId,credential},'iila-intake')
  }
  return app
 }
@@ -24,7 +24,7 @@ export function firebaseApp(){
 export class FirebaseStore{
  constructor(firestore,bucket,auth){this.firestore=firestore;this.bucket=bucket;this.auth=auth
   this.storage={
-   getBucket:async()=>{try{const [m]=await bucket.getMetadata();if(m.iamConfiguration?.publicAccessPrevention!=='enforced'||!m.iamConfiguration?.uniformBucketLevelAccess?.enabled)throw new Error('Private bucket required');return {data:{public:false}}}catch{return {error:true}}},
+   getBucket:async()=>{try{if(await bucket.ready()!==true)throw new Error('Evidence unavailable');return {data:{public:false,backend:'firestore-spark'}}}catch{return {error:true}}},
    from:()=>({
     upload:async(path,bytes)=>{try{await bucket.file(path).save(bytes,{resumable:false,contentType:'application/octet-stream',preconditionOpts:{ifGenerationMatch:0}});return {data:{path}}}catch{return {error:true}}},
     download:async path=>{try{const [b]=await bucket.file(path).download();return {data:{arrayBuffer:async()=>b}}}catch{return {error:true}}},
@@ -124,5 +124,6 @@ class Query{
 }
 export function createFirebaseStore(){
  const app=firebaseApp()
- return new FirebaseStore(getFirestore(app),getStorage(app).bucket(),getAuth(app))
+ const firestore=getFirestore(app)
+ return new FirebaseStore(firestore,new FirestoreEvidence(firestore),getAuth(app))
 }
