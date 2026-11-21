@@ -1,0 +1,31 @@
+[Unit]
+Description=IILA private evidence malware scanner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=clamav
+Group=clamav
+RuntimeDirectory=clamav
+RuntimeDirectoryMode=0755
+ExecStart=/usr/sbin/clamd --foreground=true --config-file=/etc/iila-scanner/clamd.conf
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=300
+NoNewPrivileges=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ReadWritePaths=/var/log/clamav
+TemporaryFileSystem=/tmp:rw,nosuid,nodev,noexec,size=64M,mode=1777
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=3G
+TasksMax=32
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -19,8 +19,10 @@ export default async function handler(req,res) {
   if(!body||typeof body!=='object'||Array.isArray(body))return res.status(400).json({code:'invalid_request'})
   if(Buffer.byteLength(JSON.stringify(body))>4300*1024)return res.status(413).json({code:'invalid_request'})
   if(action==='staff-setup'){
-   const client=db();await limited(client,req,'staff-setup')
-   return res.status(200).json(await setupStaff(req,client))
+   if(!/^Bearer .+$/.test(req.headers.authorization||''))return res.status(401).json({code:'unauthorised'})
+   const client=db(),status=await setupStaff(req,client)
+   await limited(client,req,'staff-setup')
+   return res.status(200).json(status)
   }
   if(action==='admin'){
    const result=await admin(db(),req,body)

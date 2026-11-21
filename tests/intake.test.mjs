@@ -112,13 +112,14 @@ test('TLS scanner validates images, rejects malware, and notifications omit case
  const {upload,submit}=await import('../server/intake/service.mjs')
  const dir=await mkdtemp(join(tmpdir(),'iila-scanner-test-'))
  execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-nodes','-keyout',join(dir,'key.pem'),'-out',join(dir,'cert.pem'),'-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost'],{stdio:'ignore'})
- let infected=false
+ let infected=false,stale=false,closeEarly=false
  const server=tls.createServer({key:await read(join(dir,'key.pem')),cert:await read(join(dir,'cert.pem')),ca:await read(join(dir,'cert.pem')),requestCert:true,rejectUnauthorized:true},socket=>{
   let received=Buffer.alloc(0)
   socket.on('error',()=>{})
   socket.on('data',chunk=>{
+   if(closeEarly){socket.end();return}
    received=Buffer.concat([received,chunk])
-   if(received.subarray(0,6).toString()==='zPING\0'){socket.end('PONG\0');return}
+   if(received.subarray(0,9).toString()==='zVERSION\0'){socket.end('ClamAV 1.4.3/12345/'+new Date(Date.now()-(stale?72*60*60*1000:0)).toUTCString()+'\0');return}
    if(received.length<10||received.subarray(0,10).toString()!=='zINSTREAM\0')return
    let n=10
    while(n+4<=received.length){
@@ -132,7 +133,10 @@ test('TLS scanner validates images, rejects malware, and notifications omit case
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve))
  process.env.INTAKE_CLAMAV_HOST='localhost';process.env.INTAKE_CLAMAV_PORT=String(server.address().port);process.env.INTAKE_CLAMAV_CA=await read(join(dir,'cert.pem'),'utf8');process.env.INTAKE_ENCRYPTION_KEY=key;process.env.INTAKE_CLAMAV_CLIENT_CERT=await read(join(dir,'cert.pem'),'utf8');process.env.INTAKE_CLAMAV_CLIENT_KEY=await read(join(dir,'key.pem'),'utf8')
  try{
-  await clam()
+  closeEarly=true;await assert.rejects(clam(),{code:'scanner_unavailable'});closeEarly=false
+  const trustedCA=process.env.INTAKE_CLAMAV_CA;delete process.env.INTAKE_CLAMAV_CA;await assert.rejects(clam(),{code:'scanner_unavailable'});process.env.INTAKE_CLAMAV_CA=trustedCA
+  const clientCert=process.env.INTAKE_CLAMAV_CLIENT_CERT,clientKey=process.env.INTAKE_CLAMAV_CLIENT_KEY;delete process.env.INTAKE_CLAMAV_CLIENT_CERT;delete process.env.INTAKE_CLAMAV_CLIENT_KEY;await assert.rejects(clam(),{code:'scanner_unavailable'});process.env.INTAKE_CLAMAV_CLIENT_CERT=clientCert;process.env.INTAKE_CLAMAV_CLIENT_KEY=clientKey
+  await clam();stale=true;await assert.rejects(clam(),{code:'scanner_unavailable'});stale=false
   const bytes=await sharp({create:{width:4,height:4,channels:3,background:'#ffffff'}}).png().toBuffer()
   await clam(bytes);infected=true;await assert.rejects(clam(bytes),{code:'unsafe_image'});infected=false
   const cookieToken=issueSession(), req={headers:{cookie:'__Host-iila-intake='+cookieToken,'x-csrf-token':hmac('csrf:'+cookieToken)}}
@@ -188,4 +192,29 @@ test('server entry loads with CommonJS require-of-ESM disabled on hosted runtime
  const {spawnSync}=await import('node:child_process')
  const result=spawnSync(process.execPath,['--no-experimental-require-module','--input-type=module','-e',"await import('./api/intake.js')"],{cwd:new URL('../',import.meta.url),encoding:'utf8'})
  assert.equal(result.status,0,result.stderr)
+})
+
+test('anonymous staff setup is rejected before database initialisation or quota writes',async()=>{
+ const res=response()
+ await handler({method:'POST',url:'/api/intake?action=staff-setup',headers:{origin:'https://iila-swiss.org','content-type':'application/json'},body:{}},res)
+ assert.equal(res.statusCode,401);assert.deepEqual(res.body,{code:'unauthorised'})
+})
+
+test('scanner certificates isolate server/client roles and refuse overwriting keys',async()=>{
+ const {mkdtemp,rm,stat}=await import('node:fs/promises'),{tmpdir}=await import('node:os'),{join}=await import('node:path'),{spawnSync}=await import('node:child_process')
+ const dir=await mkdtemp(join(tmpdir(),'iila-pki-test-')),target=join(dir,'pki')
+ try{
+  const generate=spawnSync(process.execPath,['scripts/scanner-certificates.mjs','scanner.example.invalid',target],{cwd:new URL('../',import.meta.url),encoding:'utf8'})
+  assert.equal(generate.status,0,generate.stderr)
+  const verify=(purpose,file,extra=[])=>spawnSync('openssl',['verify','-CAfile',join(target,'ca.pem'),'-purpose',purpose,...extra,join(target,file)],{encoding:'utf8'})
+  assert.equal(verify('sslserver','server.pem',['-verify_hostname','scanner.example.invalid']).status,0)
+  assert.equal(verify('sslclient','client.pem').status,0)
+  assert.notEqual(verify('sslserver','client.pem').status,0)
+  assert.notEqual(verify('sslclient','server.pem').status,0)
+  assert.notEqual(verify('sslserver','server.pem',['-verify_hostname','attacker.invalid']).status,0)
+  for(const file of ['ca.key','server.key','client.key'])assert.equal((await stat(join(target,file))).mode&0o777,0o600)
+  assert.equal((await stat(target)).mode&0o777,0o700)
+  const duplicate=spawnSync(process.execPath,['scripts/scanner-certificates.mjs','scanner.example.invalid',target],{cwd:new URL('../',import.meta.url),encoding:'utf8'})
+  assert.notEqual(duplicate.status,0)
+ }finally{await rm(dir,{recursive:true,force:true})}
 })
