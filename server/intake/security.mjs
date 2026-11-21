@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import tls from 'node:tls'
+import {MAX_FILE_BYTES} from '../../src/intake/schema.js'
 export const fail=(status,code)=>{throw Object.assign(new Error(code),{status,code})}
 export function encrypt(value,keyHex,context) {
  const key=Buffer.from(keyHex||'','hex');if(key.length!==32)fail(503,'unavailable')
@@ -34,9 +35,9 @@ export function verifySession(cookie,now=Date.now()) {
  return token
 }
 export function validateFile({name,type,base64}) {
- if(typeof name!=='string'||name.length>200||typeof base64!=='string'||base64.length>4194304||base64.length%4!==0||!/^[A-Za-z0-9+/]*={0,2}$/.test(base64))fail(400,'invalid_image')
+ if(typeof name!=='string'||name.length>200||typeof base64!=='string'||base64.length>Math.ceil((MAX_FILE_BYTES-1)/3)*4||base64.length%4!==0||!/^[A-Za-z0-9+/]*={0,2}$/.test(base64))fail(400,'invalid_image')
  const bytes=Buffer.from(base64,'base64')
- if(!bytes.length||bytes.length>3*1024*1024||bytes.toString('base64')!==base64)fail(413,'invalid_image')
+ if(!bytes.length||bytes.length>=MAX_FILE_BYTES||bytes.toString('base64')!==base64)fail(413,'invalid_image')
  const png=bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10]))
  const jpg=bytes[0]===255&&bytes[1]===216&&bytes[2]===255
  if(!((type==='image/png'&&png&&/\.png$/i.test(name))||(type==='image/jpeg'&&jpg&&/\.jpe?g$/i.test(name))))fail(400,'invalid_image')

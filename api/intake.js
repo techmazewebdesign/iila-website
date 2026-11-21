@@ -1,3 +1,4 @@
+import {verifyCaptcha,requireCaptchaToken} from '../server/intake/captcha.mjs'
 import {configured,ready,db,origin,limited,session,issueSession,hmac,upload,submit,admin,setupStaff} from '../server/intake/service.mjs'
 export const config={maxDuration:60,api:{bodyParser:{sizeLimit:'4300kb'}}}
 export default async function handler(req,res) {
@@ -10,7 +11,7 @@ export default async function handler(req,res) {
  try {
   if(req.method==='GET'&&action==='config') {
    const active=configured()?await ready():false
-   return res.status(200).json({active,firebaseConfig:process.env.INTAKE_FIREBASE_PROJECT_ID&&process.env.INTAKE_FIREBASE_API_KEY?{projectId:process.env.INTAKE_FIREBASE_PROJECT_ID,apiKey:process.env.INTAKE_FIREBASE_API_KEY,authDomain:process.env.INTAKE_FIREBASE_AUTH_DOMAIN}:null})
+   return res.status(200).json({active,captchaSiteKey:process.env.INTAKE_RECAPTCHA_SITE_KEY||null,firebaseConfig:process.env.INTAKE_FIREBASE_PROJECT_ID&&process.env.INTAKE_FIREBASE_API_KEY?{projectId:process.env.INTAKE_FIREBASE_PROJECT_ID,apiKey:process.env.INTAKE_FIREBASE_API_KEY,authDomain:process.env.INTAKE_FIREBASE_AUTH_DOMAIN}:null})
   }
   if(req.method!=='POST'){res.setHeader('Allow','GET, POST');return res.status(405).json({code:'method_not_allowed'})}
   origin(req)
@@ -32,7 +33,9 @@ export default async function handler(req,res) {
   if(!configured())return res.status(503).json({code:'unavailable'})
   const client=db()
   if(action==='session'){
+   requireCaptchaToken(body.captchaToken)
    await limited(client,req,'session')
+   await verifyCaptcha(body.captchaToken,new URL(req.headers.origin).hostname)
    const token=issueSession()
    res.setHeader('Set-Cookie','__Host-iila-intake='+token+'; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=3600')
    return res.status(200).json({csrf:hmac('csrf:'+token)})

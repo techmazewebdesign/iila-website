@@ -4,12 +4,14 @@ import {ShieldCheck,ChevronRight,CheckCircle,Upload,LockKeyhole} from 'lucide-re
 import {useLanguage} from '../context/LanguageContext'
 import {sections,visible,validate,SCHEMA_VERSION,MAX_FILE_BYTES,MAX_FILES} from '../intake/schema'
 import './intake.css'
+import IntakeCaptcha from '../components/IntakeCaptcha'
 
 export default function HumanRightsComplaint() {
  const {lang,dir}=useLanguage(), fa=lang==='fa'
  const tr=(en,faText)=>fa?faText:en
  const [data,setData]=useState({}), [step,setStep]=useState(0), [errors,setErrors]=useState({})
  const [files,setFiles]=useState([]), [notice,setNotice]=useState(''), [config,setConfig]=useState(null)
+ const [captchaToken,setCaptchaToken]=useState(''),[captchaAttempt,setCaptchaAttempt]=useState(0)
  const [busy,setBusy]=useState(false), [progress,setProgress]=useState(''), [reference,setReference]=useState('')
  const session=useRef(null), requestId=useRef(crypto.randomUUID()), uploads=useRef(new Map()), heading=useRef(null)
  useEffect(()=>{fetch('/api/intake?action=config',{cache:'no-store'}).then(r=>r.json()).then(setConfig).catch(()=>setConfig({active:false}))},[])
@@ -25,7 +27,7 @@ export default function HumanRightsComplaint() {
  const pick=selected=>{
   const incoming=Array.from(selected)
   if(files.length+incoming.length>MAX_FILES){setNotice(tr('Choose up to five images.','حداکثر پنج تصویر انتخاب کنید.'));return}
-  if(incoming.some(f=>!['image/jpeg','image/png'].includes(f.type)||f.size>MAX_FILE_BYTES||!f.size)){setNotice(tr('Only JPG/PNG images up to 3 MB each are accepted.','فقط تصویر JPG یا PNG تا ۳ مگابایت پذیرفته می‌شود.'));return}
+  if(incoming.some(f=>!['image/jpeg','image/png'].includes(f.type)||f.size>=MAX_FILE_BYTES||!f.size)){setNotice(tr('Only JPG/PNG images smaller than 3 MB each are accepted.','فقط تصویر JPG یا PNG کوچک‌تر از ۳ مگابایت پذیرفته می‌شود.'));return}
   setFiles(old=>[...old,...incoming]);setNotice('')
  }
  const api=async(action,body)=>{
@@ -37,9 +39,10 @@ export default function HumanRightsComplaint() {
  const submit=async()=>{
   const e=validate(data);if(Object.keys(e).length){setErrors(e);setStep(sections.findIndex(s=>s.fields.some(f=>e[f.name])));return}
   if(!config?.active||busy)return
+  if(!session.current&&!captchaToken){setNotice(tr('Please complete the human verification.','لطفاً تأیید انسانی را کامل کنید.'));return}
   setBusy(true);setNotice('')
   try{
-   if(!session.current)session.current=await api('session',{})
+   if(!session.current){session.current=await api('session',{captchaToken});setCaptchaToken('')}
    const ids=[]
    for(let i=0;i<files.length;i++){
     const file=files[i];setProgress(tr('Checking and securely uploading image ','بررسی و بارگذاری امن تصویر ')+(i+1)+' / '+files.length)
@@ -53,7 +56,7 @@ export default function HumanRightsComplaint() {
    setProgress(tr('Saving your request…','در حال ثبت درخواست…'))
    const result=await api('submit',{data,fileIds:ids,requestId:requestId.current,schemaVersion:SCHEMA_VERSION,language:lang,website:''})
    setReference(result.reference);setData({});setFiles([]);session.current=null;uploads.current.clear()
-  }catch(err){setNotice(tr('Your request has not been confirmed. Please try again later. Do not send sensitive evidence by email.','ثبت درخواست تأیید نشده است. لطفاً بعداً دوباره تلاش کنید. مدارک حساس را با ایمیل ارسال نکنید.'))}
+  }catch(err){if(!session.current){setCaptchaToken('');setCaptchaAttempt(n=>n+1)};setNotice(err.message==='human_check_required'?tr('Please complete a fresh human verification and try again.','لطفاً تأیید انسانی تازه‌ای انجام دهید و دوباره تلاش کنید.'):err.message==='human_check_unavailable'?tr('Human verification is temporarily unavailable. Please try again later.','تأیید انسانی موقتاً در دسترس نیست. لطفاً بعداً دوباره تلاش کنید.'):tr('Your request has not been confirmed. Please try again later. Do not send sensitive evidence by email.','ثبت درخواست تأیید نشده است. لطفاً بعداً دوباره تلاش کنید. مدارک حساس را با ایمیل ارسال نکنید.'))}
   finally{setBusy(false);setProgress('')}
  }
  const field=f=>{
@@ -78,11 +81,12 @@ export default function HumanRightsComplaint() {
     {step===2&&<p className="intake-help">{tr('Do not upload identity documents at this initial stage.','در این مرحله مدارک هویتی بارگذاری نکنید.')}</p>}
     {step===3&&<p className="intake-help">{tr('Reporting to an NGO is not necessarily a judicial complaint.','مراجعه به سازمان غیردولتی لزوماً ثبت شکایت قضایی نیست.')}</p>}
     {sections[step].fields.map(field)}
-    {step===5&&<div className="intake-upload" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy)pick(e.dataTransfer.files)}}><Upload size={26}/><label htmlFor="intake-files">{tr('Select or drop evidence images','انتخاب یا کشیدن تصاویر مدارک')}</label><input id="intake-files" type="file" multiple accept="image/jpeg,image/png" onChange={e=>{pick(e.target.files);e.target.value=''}}/><p>{tr('Up to 5 JPG/PNG images, 3 MB each. Images are validated and scanned before private encrypted storage. Videos, PDFs and larger files require a separate secure arrangement; do not email them. Keep your originals.','حداکثر ۵ تصویر JPG یا PNG، هرکدام ۳ مگابایت. تصاویر پیش از ذخیره خصوصی رمزگذاری‌شده بررسی و اسکن می‌شوند. برای ویدئو، PDF یا فایل بزرگ‌تر باید راه امن جداگانه هماهنگ شود؛ آنها را ایمیل نکنید. اصل مدارک را نگه دارید.')}</p><ul>{files.map((f,i)=><li key={i}><span>{f.name} · {(f.size/1024/1024).toFixed(2)} MB</span><button type="button" onClick={()=>{uploads.current.delete(f);setFiles(fs=>fs.filter((_,n)=>n!==i))}}>{tr('Remove','حذف')}</button></li>)}</ul></div>}
+    {step===5&&<div className="intake-upload" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy)pick(e.dataTransfer.files)}}><Upload size={26}/><label htmlFor="intake-files">{tr('Select or drop evidence images','انتخاب یا کشیدن تصاویر مدارک')}</label><input id="intake-files" type="file" multiple accept="image/jpeg,image/png" onChange={e=>{pick(e.target.files);e.target.value=''}}/><p>{tr('Up to 5 JPG/PNG images, each smaller than 3 MB. Images are validated and scanned before private encrypted storage. Videos, PDFs and larger files require a separate secure arrangement; do not email them. Keep your originals.','حداکثر ۵ تصویر JPG یا PNG، هرکدام کوچک‌تر از ۳ مگابایت. تصاویر پیش از ذخیره خصوصی رمزگذاری‌شده بررسی و اسکن می‌شوند. برای ویدئو، PDF یا فایل بزرگ‌تر باید راه امن جداگانه هماهنگ شود؛ آنها را ایمیل نکنید. اصل مدارک را نگه دارید.')}</p><ul>{files.map((f,i)=><li key={i}><span>{f.name} · {(f.size/1024/1024).toFixed(2)} MB</span><button type="button" onClick={()=>{uploads.current.delete(f);setFiles(fs=>fs.filter((_,n)=>n!==i))}}>{tr('Remove','حذف')}</button></li>)}</ul></div>}
     {step===6&&<div className="intake-privacy"><h3>{tr('How your information is used','کاربرد اطلاعات شما')}</h3><p>{tr('Controller: Iranian International Lawyers Association (IILA), Switzerland. The purpose is confidential preliminary assessment and related follow-up. Only designated staff may access cases. Notification emails contain a reference number only. External disclosure requires an appropriate legal basis.','مسئول پردازش: انجمن حقوقدانان بین‌الملل ایرانی (IILA)، سوئیس. هدف، ارزیابی اولیه محرمانه و پیگیری مرتبط است. فقط کارکنان تعیین‌شده دسترسی دارند. ایمیل اعلان فقط کد پیگیری دارد. افشای بیرونی نیازمند مبنای حقوقی مناسب است.')}</p><p>{tr('Submitted cases and attached evidence are kept without automatic expiry while verification is pending. Completing verification does not automatically delete them; any later retention or deletion rule requires a separate IILA decision. To request access, correction, withdrawal or deletion, contact info@iila-swiss.org with your reference number only. Do not email evidence.','پرونده‌های ثبت‌شده و مدارک پیوست تا زمان بررسی و تأیید، بدون محدودیت زمانی و بدون انقضای خودکار نگهداری می‌شوند. تأیید اطلاعات موجب حذف خودکار نمی‌شود؛ هر قاعده بعدی برای نگهداری یا حذف به تصمیم جداگانه انجمن نیاز دارد. برای دسترسی، اصلاح، پس‌گرفتن رضایت یا حذف، فقط کد پیگیری را به info@iila-swiss.org اعلام کنید؛ مدارک را ایمیل نکنید.')}</p><Link to={fa?'/fa/intake-privacy':'/intake-privacy'} target="_blank" rel="noreferrer">{tr('Read intake privacy notice','مطالعه اطلاعیه حریم خصوصی فرم')}</Link></div>}
     {step===7&&<><p>{tr('Review your answers before submission. Use Back to make corrections.','پاسخ‌ها را پیش از ثبت بازبینی کنید. برای اصلاح از دکمه قبل استفاده کنید.')}</p><dl className="intake-review">{sections.flatMap(s=>s.fields).filter(f=>visible(f,data)&&data[f.name]!==undefined&&data[f.name]!=='').map(f=><div key={f.name}><dt>{fa?f.fa:f.en}</dt><dd>{f.type==='consent'?tr('Confirmed','تأیید شده'):Array.isArray(data[f.name])?data[f.name].map(v=>{const o=f.options?.find(x=>x[0]===v);return o?o[fa?2:1]:v}).join('، '):f.options?(f.options.find(o=>o[0]===data[f.name])?.[fa?2:1]||data[f.name]):data[f.name]}</dd></div>)}</dl><p>{tr('Images selected: ','تصاویر انتخاب‌شده: ')}{files.length}</p><label className="intake-trap" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off"/></label></>}
+    {step===7&&config?.captchaSiteKey&&!session.current&&<IntakeCaptcha key={captchaAttempt} siteKey={config.captchaSiteKey} language={lang} onToken={setCaptchaToken}/>}
     {notice&&<p className="intake-error" role="alert">{notice}</p>}{progress&&<p role="status" aria-live="polite">{progress}</p>}
-    <div className="intake-actions">{step>0&&<button type="button" disabled={busy} onClick={()=>{setStep(s=>s-1);setNotice('')}}>{tr('Back','قبل')}</button>}<button type="submit" className="intake-primary" disabled={busy||(step===7&&!config?.active)}>{busy?tr('Submitting…','در حال ثبت…'):step===7?tr('Submit confidential request','ثبت محرمانه درخواست'):tr('Continue','ادامه')}<ChevronRight size={17}/></button></div>
+    <div className="intake-actions">{step>0&&<button type="button" disabled={busy} onClick={()=>{setStep(s=>s-1);setNotice('')}}>{tr('Back','قبل')}</button>}<button type="submit" className="intake-primary" disabled={busy||(step===7&&(!config?.active||(!session.current&&!captchaToken)))}>{busy?tr('Submitting…','در حال ثبت…'):step===7?tr('Submit confidential request','ثبت محرمانه درخواست'):tr('Continue','ادامه')}<ChevronRight size={17}/></button></div>
    </form>
   </div></div>
  </section>

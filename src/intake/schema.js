@@ -1,6 +1,6 @@
 export const SCHEMA_VERSION = '2026-11-20-v1'
 export const MAX_FILES = 5
-export const MAX_FILE_BYTES = 3 * 1024 * 1024
+export const MAX_FILE_BYTES = 3_000_000
 export const choice = (name,en,fa,options,required=true,when=null) => ({name,en,fa,type:'select',options,required,when})
 export const field = (name,en,fa,type='text',required=false,when=null) => ({name,en,fa,type,required,when})
 const yn = [['yes','Yes','بله'],['no','No','خیر']]

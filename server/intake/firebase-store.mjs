@@ -61,7 +61,8 @@ export class FirebaseStore{
      const ref=this.firestore.collection('iila_uploads').doc(p.p_id),ownerRef=this.firestore.collection('iila_owners').doc(p.p_owner)
      const [existing,owner]=await Promise.all([tx.get(ref),tx.get(ownerRef)])
      if(existing.exists){const d=existing.data();if(d.owner_hash===p.p_owner&&d.state==='ready')return 'exists';reject()}
-     const old=owner.data(),fresh=!old||expired(old.window_start),count=fresh?0:old.count
+     const old=owner.data();if(old?.submitted_case_id)reject()
+     const fresh=!old||expired(old.window_start),count=fresh?0:old.count
      if(count>=5)reject()
      tx.set(ownerRef,{count:count+1,window_start:fresh?now():old.window_start})
      tx.create(ref,{id:p.p_id,owner_hash:p.p_owner,state:'reserved',created_at:now(),case_id:null})
@@ -71,9 +72,12 @@ export class FirebaseStore{
      if(!Array.isArray(p.p_files)||p.p_files.length>5||new Set(p.p_files).size!==p.p_files.length)reject()
      const ref=this.firestore.collection('iila_cases').doc(p.p_id),previous=await tx.get(ref)
      if(previous.exists){if(previous.data().owner_hash!==p.p_owner)reject();return previous.data().reference}
+     const ownerRef=this.firestore.collection('iila_owners').doc(p.p_owner),owner=await tx.get(ownerRef)
+     if(owner.data()?.submitted_case_id)reject()
      const refs=p.p_files.map(id=>this.firestore.collection('iila_uploads').doc(id))
      const files=await Promise.all(refs.map(r=>tx.get(r)))
      for(const file of files){const d=file.data();if(!d||d.owner_hash!==p.p_owner||d.state!=='ready'||expired(d.created_at)||d.case_id)reject()}
+     tx.set(ownerRef,{...(owner.data()||{count:0,window_start:now()}),submitted_case_id:p.p_id})
      tx.create(ref,{id:p.p_id,reference:p.p_reference,owner_hash:p.p_owner,payload_sealed:p.p_sealed,high_risk:p.p_risk,language:p.p_language,created_at:now(),status:'received',verified_at:null,notified_at:null,notes_sealed:null,legal_hold:false})
      for(const r of refs)tx.update(r,{case_id:p.p_id,state:'attached'})
      return p.p_reference

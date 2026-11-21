@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import crypto from 'node:crypto'
 import {readFile} from 'node:fs/promises'
-import {sections,visible,validate,cleanData,SCHEMA_VERSION} from '../src/intake/schema.js'
+import {sections,visible,validate,cleanData,SCHEMA_VERSION,MAX_FILE_BYTES} from '../src/intake/schema.js'
 import {encrypt,decrypt,issueSession,verifySession,hmac,validateFile} from '../server/intake/security.mjs'
 import {configured,staff,setupStaff,origin} from '../server/intake/service.mjs'
 import handler from '../api/intake.js'
@@ -219,4 +219,20 @@ test('scanner certificates isolate server/client roles and refuse overwriting ke
   const duplicate=spawnSync(process.execPath,['scripts/scanner-certificates.mjs','scanner.example.invalid',target],{cwd:new URL('../',import.meta.url),encoding:'utf8'})
   assert.notEqual(duplicate.status,0)
  }finally{await rm(dir,{recursive:true,force:true})}
+})
+
+test('image content must be strictly below three decimal megabytes',()=>{
+ const image=Buffer.alloc(MAX_FILE_BYTES-1);Buffer.from([137,80,78,71,13,10,26,10]).copy(image)
+ assert.equal(validateFile({name:'fictional.png',type:'image/png',base64:image.toString('base64')}).length,2999999)
+ for(const size of [MAX_FILE_BYTES,MAX_FILE_BYTES+1]){
+  const bytes=Buffer.alloc(size);image.subarray(0,8).copy(bytes)
+  assert.throws(()=>validateFile({name:'fictional.png',type:'image/png',base64:bytes.toString('base64')}),{code:'invalid_image'})
+ }
+})
+test('only public complaint routes allow the CAPTCHA script and frames',async()=>{
+ const config=JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'))
+ const staff=config.routes.find(r=>r.src?.includes('intake-admin')).headers['Content-Security-Policy']
+ const form=config.routes.find(r=>r.src?.includes('human-rights-complaint')).headers['Content-Security-Policy']
+ assert.ok(!staff.includes('recaptcha.net'));assert.ok(form.includes('https://www.recaptcha.net/recaptcha/'))
+ assert.ok(!form.includes('googletagmanager'));assert.ok(form.includes("frame-ancestors 'none'"))
 })
