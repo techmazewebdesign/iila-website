@@ -76,3 +76,12 @@ test('client access is denied to all intake documents and evidence',async()=>{
   assert.ok(rules.includes('allow read, write: if false;'))
  }
 })
+
+test('one human-verified session can create one case while retaining idempotent retries',async()=>{
+ const {store}=fixture(),p={p_id:'first',p_reference:'IILA-FICTIONAL',p_owner:'human-session',p_sealed:'encrypted',p_files:[],p_language:'en'}
+ assert.equal((await store.rpc('iila_submit',p)).data,'IILA-FICTIONAL')
+ assert.equal((await store.rpc('iila_submit',p)).data,'IILA-FICTIONAL')
+ assert.ok((await store.rpc('iila_submit',{...p,p_id:'second'})).error)
+ assert.ok((await store.rpc('iila_reserve_upload',{p_id:'after-submit',p_owner:'human-session'})).error)
+ assert.equal((await store.rpc('iila_submit',{...p,p_id:'second',p_owner:'new-human-session'})).data,'IILA-FICTIONAL')
+})
