@@ -11,7 +11,7 @@ const statuses=['received','awaiting_review','legal_review','needs_evidence','do
 export default function IntakeAdmin(){
  const {lang}=useLanguage(),fa=lang==='fa',tr=(a,b)=>fa?b:a
  const client=useRef(null),token=useRef(null),idle=useRef(null)
- const secret=useRef(null)
+ const secret=useRef(null),setupGeneration=useRef(0)
  const [setupMessage,setSetupMessage]=useState(''),[setupQR,setSetupQR]=useState('')
  const [state,setState]=useState('loading'),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[otp,setOtp]=useState(''),[factor,setFactor]=useState(null),[cases,setCases]=useState([]),[selected,setSelected]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[search,setSearch]=useState('')
  const api=async body=>{
@@ -20,7 +20,7 @@ export default function IntakeAdmin(){
   if(body.operation==='download')return r.blob()
   return r.json()
  }
- const logout=async()=>{secret.current=null;setSetupQR('');setSetupMessage('');setFactor(null);token.current=null;setCases([]);setSelected(null);setState('login');setPassword('');setOtp('');if(client.current)await signOut(client.current)}
+ const logout=async()=>{setupGeneration.current++;secret.current=null;setSetupQR('');setSetupMessage('');setFactor(null);token.current=null;setCases([]);setSelected(null);setState('login');setPassword('');setOtp('');if(client.current)await signOut(client.current)}
  useEffect(()=>{
   fetch('/api/intake?action=config',{cache:'no-store'}).then(r=>r.json()).then(c=>{
    if(!c.firebaseConfig){setState('unconfigured');return}
@@ -50,7 +50,8 @@ export default function IntakeAdmin(){
   const status=await r.json()
   if(!status.emailVerified){setState('verify-email');return}
   if(status.totpEnrolled){await logout();setSetupMessage(tr('Authenticator is enabled. Sign in again to complete the authenticator challenge.','رمزساز فعال است. دوباره وارد شوید تا تأیید رمزساز انجام شود.'));return}
-  setState('enroll')
+  setSetupMessage('');setState('enroll')
+  await createAuthenticatorSetup()
  }
  const resetPassword=()=>run(async()=>{
   if(!email.trim())throw Object.assign(new Error('Email required'),{code:'staff/email-required'})
@@ -61,7 +62,8 @@ export default function IntakeAdmin(){
   await sendEmailVerification(client.current.currentUser)
   setSetupMessage(tr('Verification email sent. Open its link, then return here.','ایمیل تأیید ارسال شد. پیوند آن را باز کنید و سپس اینجا برگردید.'))
  })
- const prepareAuthenticator=()=>run(async()=>{
+ const createAuthenticatorSetup=async()=>{
+  const generation=++setupGeneration.current
   secret.current=null;setSetupQR('');setOtp('');setSetupMessage('')
   const user=client.current.currentUser,session=await multiFactor(user).getSession()
   const candidate=await TotpMultiFactorGenerator.generateSecret(session)
@@ -69,8 +71,10 @@ export default function IntakeAdmin(){
   // QR is rendered in this browser. The secret is never sent to a QR service.
   const {default:QRCode}=await import('qrcode')
   const qr=await QRCode.toDataURL(candidate.generateQrCodeUrl(user.email,'IILA Confidential Intake'),{width:240,margin:3,errorCorrectionLevel:'M'})
+  if(generation!==setupGeneration.current||client.current.currentUser?.uid!==user.uid)return
   secret.current=candidate;setSetupQR(qr)
- })
+ }
+ const prepareAuthenticator=()=>run(createAuthenticatorSetup)
  const copySetupKey=()=>run(async()=>{
   if(!secret.current||enrollmentExpired(secret.current.enrollmentCompletionDeadline))throw Object.assign(new Error('Setup expired'),{code:'staff/totp-setup-expired'})
   await navigator.clipboard.writeText(secret.current.secretKey)
@@ -106,19 +110,18 @@ export default function IntakeAdmin(){
   const blob=await api({operation:'download',id:selected.id,fileId:file.id})
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='IILA-'+file.id+(file.type==='image/png'?'.png':'.jpg');a.click();URL.revokeObjectURL(url)
  })
- return <section className="intake-page intake-admin"><h1 className="text-3xl mb-6">{tr('Confidential intake · staff portal','درخواست‌های محرمانه · پرتال کارکنان')}</h1><p className="intake-help">{tr('Designated staff only. Multi-factor authentication is required. Sessions stay in memory and expire after 10 minutes of inactivity. Access and downloads are audited.','فقط کارکنان تعیین‌شده. احراز هویت دومرحله‌ای اجباری است. نشست فقط در حافظه نگهداری و پس از ۱۰ دقیقه عدم فعالیت بسته می‌شود. دسترسی و دانلود ثبت می‌شود.')}</p>
+ return <section className="intake-page intake-admin"><h1 className="text-3xl mb-6">{tr('Confidential intake · staff portal','درخواست‌های محرمانه · پرتال کارکنان')}</h1><p className="intake-help">{tr('For authorised IILA reviewers. People sending a request do not need an account or an authenticator.','ویژه بررسی‌کنندگان مجاز انجمن. ارسال‌کنندگان درخواست نیازی به حساب کاربری یا برنامه رمزساز ندارند.')}</p>
  {state==='loading'&&<p>{tr('Loading…','در حال بارگذاری…')}</p>}
  {state==='unconfigured'&&<p className="intake-banner">{tr('Staff access is awaiting secure backend configuration. No cases can be collected or viewed.','دسترسی کارکنان در انتظار تنظیمات امن است. دریافت یا مشاهده پرونده ممکن نیست.')}</p>}
  {state==='login'&&<form onSubmit={login}><label>{tr('Staff email','ایمیل کارکنان')}<input type="email" required autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)}/></label><label>{tr('Password','رمز عبور')}<input type="password" required autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>{tr('Sign in','ورود')}</button><button type="button" disabled={busy} onClick={resetPassword}>{tr('Set or reset portal password','تنظیم یا بازنشانی رمز پرتال')}</button><p className="intake-help">{tr('Use the password you created for the IILA staff portal. Your Gmail or mailbox password does not sign you into this portal.','از رمزی که برای پرتال کارکنان انجمن ساخته‌اید استفاده کنید. رمز جیمیل یا صندوق ایمیل برای ورود به این پرتال نیست.')}</p></form>}
  {state==='verify-email'&&<div><h2>{tr('Verify your staff email','ایمیل کارکنان را تأیید کنید')}</h2><p>{tr('Verify ownership of your email before setting up your authenticator.','پیش از تنظیم رمزساز، مالکیت ایمیل را تأیید کنید.')}</p><button disabled={busy} onClick={sendVerification}>{tr('Send verification email','ارسال ایمیل تأیید')}</button><button disabled={busy} onClick={()=>run(setupStatus)}>{tr('I verified my email','ایمیلم را تأیید کردم')}</button><button onClick={logout}>{tr('Sign out','خروج')}</button></div>}
- {state==='enroll'&&<div><h2>{tr('Set up your authenticator','تنظیم برنامه رمزساز')}</h2>
-  <p>{tr('Open Google Authenticator or Microsoft Authenticator on your phone. Add a new account by scanning the QR code below. Keep the QR code and setup key private.','Google Authenticator یا Microsoft Authenticator را در تلفن باز کنید. با اسکن کد زیر حساب جدیدی اضافه کنید. کد و کلید تنظیم را محرمانه نگه دارید.')}</p>
-  {!secret.current?<button disabled={busy} onClick={prepareAuthenticator}>{tr('Generate authenticator setup','ایجاد تنظیمات رمزساز')}</button>:<>
-   {setupQR&&<img src={setupQR} alt={tr('Private authenticator setup QR code','کد خصوصی تنظیم برنامه رمزساز')} width="240" height="240" className="intake-auth-qr"/>}
-   <p className="intake-help">{tr('Use the new entry labelled IILA Confidential Intake. Wait for a fresh six-digit code, then enter it below.','از حساب جدید با نام IILA Confidential Intake استفاده کنید. منتظر کد شش‌رقمی جدید بمانید و آن را در پایین وارد کنید.')}</p>
-   <details><summary>{tr('Enter setup key manually instead','وارد کردن دستی کلید تنظیم')}</summary><label>{tr('Private setup key','کلید محرمانه تنظیم')}<input readOnly autoComplete="off" dir="ltr" value={secret.current.secretKey}/></label><button type="button" disabled={busy} onClick={copySetupKey}>{tr('Copy setup key','کپی کلید تنظیم')}</button><p className="intake-help">{tr('Choose time-based codes. Digits: ','رمز مبتنی بر زمان را انتخاب کنید. تعداد رقم: ')}{secret.current.codeLength}{tr(' · Interval (seconds): ',' · دوره (ثانیه): ')}{secret.current.codeIntervalSeconds}{' · '}{secret.current.hashingAlgorithm}</p></details>
-   <form onSubmit={enroll}><label>{tr('Six-digit authenticator code','کد شش‌رقمی رمزساز')}<input value={otp} onChange={e=>setOtp(normalizeTotpCode(e.target.value))} inputMode="numeric" pattern="[0-9]{6}" autoComplete="one-time-code" dir="ltr" required/></label><button disabled={busy}>{tr('Enable authenticator','فعال‌سازی رمزساز')}</button></form>
-   <p className="intake-help">{tr('If you start a new setup, scan its new QR code into your authenticator. Codes from an earlier setup will not work.','اگر تنظیم جدیدی ایجاد کنید، کد جدید آن را در رمزساز اسکن کنید. رمزهای تنظیم قبلی کار نمی‌کنند.')}</p><button type="button" disabled={busy} onClick={prepareAuthenticator}>{tr('Start new authenticator setup','شروع تنظیم جدید رمزساز')}</button>
+ {state==='enroll'&&<div className="intake-auth-panel"><h2>{tr('One-time staff security setup','تنظیم یک‌باره امنیت کارکنان')}</h2>
+  {!secret.current?<div aria-live="polite">{busy?<p role="status">{tr('Preparing your private QR code…','در حال آماده‌سازی کد خصوصی شما…')}</p>:<><p>{tr('Your QR code could not be prepared, or the setup expired. Try again below.','کد آماده نشده یا مهلت تنظیم تمام شده است. از دکمه زیر دوباره تلاش کنید.')}</p><button disabled={busy} onClick={prepareAuthenticator}>{tr('Show my setup QR code','نمایش کد تنظیم من')}</button></>}</div>:<>
+   <div className="intake-auth-steps"><div><h3>{tr('1. Scan this code','۱. این کد را اسکن کنید')}</h3><p>{tr('In Google Authenticator or Microsoft Authenticator, add an account and choose Scan QR code.','در Google Authenticator یا Microsoft Authenticator، افزودن حساب و اسکن کد را انتخاب کنید.')}</p>
+   {setupQR&&<img src={setupQR} alt={tr('Private authenticator setup QR code','کد خصوصی تنظیم برنامه رمزساز')} width="240" height="240" className="intake-auth-qr"/>}</div>
+   <div><h3>{tr('2. Enter its current code','۲. کد فعلی آن را وارد کنید')}</h3><p className="intake-help">{tr('Use the new entry named IILA Confidential Intake.','از حساب جدید با نام IILA Confidential Intake استفاده کنید.')}</p><form onSubmit={enroll}><label>{tr('Six-digit code','کد شش‌رقمی')}<input value={otp} onChange={e=>setOtp(normalizeTotpCode(e.target.value))} inputMode="numeric" pattern="[0-9]{6}" autoComplete="one-time-code" dir="ltr" placeholder="000000" required/></label><button disabled={busy}>{tr('Finish staff setup','تکمیل تنظیم کارکنان')}</button></form></div></div>
+   <details><summary>{tr('Cannot scan? Enter a setup key instead','اسکن ممکن نیست؟ کلید تنظیم را وارد کنید')}</summary><label>{tr('Private setup key','کلید محرمانه تنظیم')}<input readOnly autoComplete="off" dir="ltr" value={secret.current.secretKey}/></label><button type="button" disabled={busy} onClick={copySetupKey}>{tr('Copy setup key','کپی کلید تنظیم')}</button><p className="intake-help">{tr('Time-based · Digits: ','مبتنی بر زمان · تعداد رقم: ')}{secret.current.codeLength}{tr(' · Seconds: ',' · ثانیه: ')}{secret.current.codeIntervalSeconds}{' · '}{secret.current.hashingAlgorithm}</p></details>
+   <details><summary>{tr('Start a different setup','شروع تنظیم دیگر')}</summary><p className="intake-help">{tr('A new setup needs a new entry in your authenticator app. Keep this QR code and key private.','برای تنظیم جدید، حساب جدیدی در رمزساز اضافه کنید. کد و کلید تنظیم را محرمانه نگه دارید.')}</p><button type="button" disabled={busy} onClick={prepareAuthenticator}>{tr('Create a new QR code','ایجاد کد جدید')}</button></details>
   </>}
   {setupMessage&&<p role="status">{setupMessage}</p>}<button onClick={logout}>{tr('Sign out','خروج')}</button>
  </div>}
