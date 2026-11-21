@@ -92,6 +92,8 @@ test('unconfigured API is fail-closed; no false submission success',async()=>{
 })
 test('sensitive routes isolate analytics and reject framing',async()=>{
  const config=JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'))
+ assert.deepEqual(config.regions,['fra1'])
+ const privacy=await readFile(new URL('../src/pages/IntakePrivacy.jsx',import.meta.url),'utf8');assert.ok(privacy.includes('Firebase'));assert.ok(!privacy.includes('Supabase'))
  const headers=config.routes[0].headers
  assert.ok(headers['Content-Security-Policy'].includes("script-src 'self'"))
  assert.ok(!headers['Content-Security-Policy'].includes('googletagmanager'))
