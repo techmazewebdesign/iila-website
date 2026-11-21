@@ -4,9 +4,11 @@ import IILALogo from './IILALogo'
 import ThemeToggle from './ThemeToggle'
 import LanguageToggle from './LanguageToggle'
 import { useTranslation } from '../i18n'
+import { useLanguage } from '../context/LanguageContext'
 
 export default function Header() {
   const t = useTranslation()
+  const { lang } = useLanguage()
   const [scrolled, setScrolled]     = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
@@ -18,6 +20,7 @@ export default function Header() {
     { label: t.header.mission,      to: '/mission' },
     { label: t.header.publications, to: '/publications' },
     { label: t.header.humanRights, to: '/human-rights' },
+    { label: lang === 'fa' ? 'ثبت درخواست حقوق بشر' : 'Human Rights Intake', to: lang === 'fa' ? '/fa/human-rights-complaint' : '/human-rights-complaint' },
     { label: t.header.partners,     to: '/partners' },
   ]
 

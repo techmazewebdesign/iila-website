@@ -1,0 +1,27 @@
+[Unit]
+Description=IILA certificate-authenticated scanner gateway
+Requires=iila-clamd.service
+After=iila-clamd.service network-online.target
+
+[Service]
+Type=simple
+User=iila-scanner
+Group=iila-scanner
+ExecStart=/usr/bin/stunnel4 /etc/iila-scanner/stunnel.conf
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=128M
+TasksMax=32
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

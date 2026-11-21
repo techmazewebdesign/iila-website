@@ -11,6 +11,7 @@ export function LanguageProvider({ children }) {
     if (window.location.pathname === '/fa' || window.location.pathname.startsWith('/fa/')) {
       return 'fa'
     }
+    if (/^\/(human-rights-complaint|intake-admin|intake-privacy)(\/|$)/.test(window.location.pathname)) return 'en'
     try {
       return localStorage.getItem('iila-lang') || 'en'
     } catch {

@@ -1,0 +1,40 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "iila_uploads",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "case_id",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "created_at",
+          "order": "ASCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "chunks",
+      "fieldPath": "data",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iila_cases",
+      "fieldPath": "payload_sealed",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iila_cases",
+      "fieldPath": "notes_sealed",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "iila_uploads",
+      "fieldPath": "metadata_sealed",
+      "indexes": []
+    }
+  ]
+}
