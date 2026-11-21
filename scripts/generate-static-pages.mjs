@@ -95,3 +95,16 @@ ${sitemapUrls}
 `)
 
 console.log(`Generated ${ROUTES.length * 2} crawlable static pages and a localized sitemap.`)
+
+for (const path of ['/intake-admin']) {
+ for(const lang of ['en','fa']) {
+  const prefix=lang==='fa'?'/fa':'';
+  const dir=new URL((prefix+path).slice(1)+'/',distDir);
+  await mkdir(dir,{recursive:true});
+  const html=template.replace(/<html[^>]+>/, '<html lang="'+lang+'" dir="'+(lang==='fa'?'rtl':'ltr')+'">')
+   .replace(/<link[^>]+(?:fonts.googleapis.com|fonts.gstatic.com)[^>]*>/g,'')
+   .replace(/<meta name="robots"[^>]*>/g,'<meta name="robots" content="noindex, nofollow, noarchive">')
+   .replace(/<title>[\s\S]*?<\/title>/,'<title>IILA | Confidential intake</title>');
+  await writeFile(new URL('index.html',dir),html);
+ }
+}
