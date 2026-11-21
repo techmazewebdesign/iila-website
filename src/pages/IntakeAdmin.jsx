@@ -1,7 +1,8 @@
 import {useState,useEffect,useRef} from 'react'
 import {initializeApp,getApps} from '@firebase/app'
-import {initializeAuth,inMemoryPersistence,signInWithEmailAndPassword,signOut,getMultiFactorResolver,TotpMultiFactorGenerator,multiFactor,sendEmailVerification,reload} from '@firebase/auth'
+import {initializeAuth,inMemoryPersistence,signInWithEmailAndPassword,signOut,getMultiFactorResolver,TotpMultiFactorGenerator,multiFactor,sendEmailVerification,sendPasswordResetEmail,reload} from '@firebase/auth'
 import {sections} from '../intake/schema'
+import {staffErrorMessage,staffRequestError} from '../intake/staff-errors'
 import {useLanguage} from '../context/LanguageContext'
 import './intake.css'
 const statusLabels={received:['Received','دریافت شده'],awaiting_review:['Awaiting review','در انتظار بررسی'],legal_review:['Legal review','بررسی حقوقی'],needs_evidence:['Needs evidence','نیازمند مدرک'],documenting:['Documenting','تکمیل مستندات'],ready_for_decision:['Ready for decision','آماده تصمیم‌گیری'],verified:['Verification completed','بررسی و تأیید اطلاعات انجام شد'],referred:['Referred','ارجاع شده'],closed:['Closed','مختومه']}
@@ -14,7 +15,7 @@ export default function IntakeAdmin(){
  const [state,setState]=useState('loading'),[email,setEmail]=useState(''),[password,setPassword]=useState(''),[otp,setOtp]=useState(''),[factor,setFactor]=useState(null),[cases,setCases]=useState([]),[selected,setSelected]=useState(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[search,setSearch]=useState('')
  const api=async body=>{
   const r=await fetch('/api/intake?action=admin',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token.current},body:JSON.stringify(body),cache:'no-store'})
-  if(!r.ok)throw new Error('Access unavailable. Check your staff access and MFA, then sign in again.')
+  if(!r.ok){const problem=await r.json().catch(()=>({}));throw staffRequestError(r.status,problem.code)}
   if(body.operation==='download')return r.blob()
   return r.json()
  }
@@ -31,17 +32,22 @@ export default function IntakeAdmin(){
   reset();window.addEventListener('pointerdown',reset);window.addEventListener('keydown',reset)
   return()=>{clearTimeout(idle.current);window.removeEventListener('pointerdown',reset);window.removeEventListener('keydown',reset)}
  },[state])
- const run=async action=>{setBusy(true);setError('');try{await action()}catch{setError(tr('Access or action unavailable. Check staff permissions and MFA; sign in again if needed.','دسترسی یا عملیات در دسترس نیست. مجوز و احراز هویت دومرحله‌ای را بررسی و در صورت نیاز دوباره وارد شوید.'))}finally{setBusy(false)}}
+ const run=async action=>{setBusy(true);setError('');try{await action()}catch(problem){setError(staffErrorMessage(problem,fa))}finally{setBusy(false)}}
  const setupStatus=async()=>{
   const user=client.current.currentUser
   await reload(user);token.current=await user.getIdToken(true)
   const r=await fetch('/api/intake?action=staff-setup',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token.current},body:'{}',cache:'no-store'})
-  if(!r.ok){await logout();throw new Error('Not authorised')}
+  if(!r.ok){const problem=await r.json().catch(()=>({}));await logout();throw staffRequestError(r.status,problem.code)}
   const status=await r.json()
   if(!status.emailVerified){setState('verify-email');return}
-  if(status.totpEnrolled){await logout();return}
+  if(status.totpEnrolled){await logout();setSetupMessage(tr('Authenticator is enabled. Sign in again to complete the authenticator challenge.','رمزساز فعال است. دوباره وارد شوید تا تأیید رمزساز انجام شود.'));return}
   setState('enroll')
  }
+ const resetPassword=()=>run(async()=>{
+  if(!email.trim())throw Object.assign(new Error('Email required'),{code:'staff/email-required'})
+  await sendPasswordResetEmail(client.current,email.trim())
+  setSetupMessage(tr('If this email has an IILA staff account, a password setup/reset link has been sent. Check your inbox and spam folder.','اگر این ایمیل حساب کارکنان انجمن داشته باشد، پیوند تنظیم یا بازنشانی رمز ارسال شده است. صندوق ورودی و هرزنامه را بررسی کنید.'))
+ })
  const sendVerification=()=>run(async()=>{
   await sendEmailVerification(client.current.currentUser)
   setSetupMessage(tr('Verification email sent. Open its link, then return here.','ایمیل تأیید ارسال شد. پیوند آن را باز کنید و سپس اینجا برگردید.'))
@@ -58,13 +64,13 @@ export default function IntakeAdmin(){
  })}
  const login=async e=>{e.preventDefault();await run(async()=>{
   try{
-   await signInWithEmailAndPassword(client.current,email,password)
+   await signInWithEmailAndPassword(client.current,email.trim(),password)
    await setupStatus()
   }catch(err){
    if(err.code!=='auth/multi-factor-auth-required')throw err
    const resolver=getMultiFactorResolver(client.current,err)
    const index=resolver.hints.findIndex(h=>h.factorId===TotpMultiFactorGenerator.FACTOR_ID)
-   if(index<0)throw new Error('An enrolled authenticator is required')
+   if(index<0)throw Object.assign(new Error('Authenticator required'),{code:'staff/mfa-required'})
    setFactor({resolver,index});setState('mfa')
   }finally{setPassword('')}
  })}
@@ -73,7 +79,7 @@ export default function IntakeAdmin(){
   const assertion=TotpMultiFactorGenerator.assertionForSignIn(hint.uid,otp)
   const credential=await factor.resolver.resolveSignIn(assertion);setOtp('');setFactor(null)
   token.current=await credential.user.getIdToken()
-  const result=await api({operation:'list'});setCases(result.cases);setState('ready')
+  try{const result=await api({operation:'list'});setCases(result.cases);setState('ready')}catch(problem){await logout();throw problem}
  })}
  const detail=id=>run(async()=>setSelected((await api({operation:'detail',id})).case))
  const download=file=>run(async()=>{
@@ -83,7 +89,7 @@ export default function IntakeAdmin(){
  return <section className="intake-page intake-admin"><h1 className="text-3xl mb-6">{tr('Confidential intake · staff portal','درخواست‌های محرمانه · پرتال کارکنان')}</h1><p className="intake-help">{tr('Designated staff only. Multi-factor authentication is required. Sessions stay in memory and expire after 10 minutes of inactivity. Access and downloads are audited.','فقط کارکنان تعیین‌شده. احراز هویت دومرحله‌ای اجباری است. نشست فقط در حافظه نگهداری و پس از ۱۰ دقیقه عدم فعالیت بسته می‌شود. دسترسی و دانلود ثبت می‌شود.')}</p>
  {state==='loading'&&<p>{tr('Loading…','در حال بارگذاری…')}</p>}
  {state==='unconfigured'&&<p className="intake-banner">{tr('Staff access is awaiting secure backend configuration. No cases can be collected or viewed.','دسترسی کارکنان در انتظار تنظیمات امن است. دریافت یا مشاهده پرونده ممکن نیست.')}</p>}
- {state==='login'&&<form onSubmit={login}><label>{tr('Staff email','ایمیل کارکنان')}<input type="email" required autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)}/></label><label>{tr('Password','رمز عبور')}<input type="password" required autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>{tr('Sign in','ورود')}</button></form>}
+ {state==='login'&&<form onSubmit={login}><label>{tr('Staff email','ایمیل کارکنان')}<input type="email" required autoComplete="username" value={email} onChange={e=>setEmail(e.target.value)}/></label><label>{tr('Password','رمز عبور')}<input type="password" required autoComplete="current-password" value={password} onChange={e=>setPassword(e.target.value)}/></label><button disabled={busy}>{tr('Sign in','ورود')}</button><button type="button" disabled={busy} onClick={resetPassword}>{tr('Set or reset portal password','تنظیم یا بازنشانی رمز پرتال')}</button><p className="intake-help">{tr('Use the password you created for the IILA staff portal. Your Gmail or mailbox password does not sign you into this portal.','از رمزی که برای پرتال کارکنان انجمن ساخته‌اید استفاده کنید. رمز جیمیل یا صندوق ایمیل برای ورود به این پرتال نیست.')}</p></form>}
  {state==='verify-email'&&<div><h2>{tr('Verify your staff email','ایمیل کارکنان را تأیید کنید')}</h2><p>{tr('Verify ownership of your email before setting up your authenticator.','پیش از تنظیم رمزساز، مالکیت ایمیل را تأیید کنید.')}</p><button disabled={busy} onClick={sendVerification}>{tr('Send verification email','ارسال ایمیل تأیید')}</button><button disabled={busy} onClick={()=>run(setupStatus)}>{tr('I verified my email','ایمیلم را تأیید کردم')}</button><button onClick={logout}>{tr('Sign out','خروج')}</button></div>}
  {state==='enroll'&&<div><h2>{tr('Set up your authenticator','تنظیم برنامه رمزساز')}</h2><p>{tr('Use Google Authenticator, Microsoft Authenticator or another TOTP app. Add a time-based account named IILA. Keep the setup key private.','از Google Authenticator یا یک برنامه رمزساز TOTP استفاده کنید. حسابی با نام IILA و رمز مبتنی بر زمان اضافه کنید. کلید تنظیم را محرمانه نگه دارید.')}</p>{!secret.current?<button disabled={busy} onClick={prepareAuthenticator}>{tr('Generate authenticator setup key','ایجاد کلید تنظیم رمزساز')}</button>:<form onSubmit={enroll}><label>{tr('Private setup key','کلید محرمانه تنظیم')}<input readOnly autoComplete="off" dir="ltr" value={secret.current.secretKey}/></label><label>{tr('Six-digit authenticator code','کد شش‌رقمی رمزساز')}<input value={otp} onChange={e=>setOtp(e.target.value)} inputMode="numeric" pattern="[0-9]{6}" autoComplete="one-time-code" required/></label><button disabled={busy}>{tr('Enable authenticator','فعال‌سازی رمزساز')}</button></form>}<button onClick={logout}>{tr('Sign out','خروج')}</button></div>}
  {setupMessage&&state!=='enroll'&&<p role="status">{setupMessage}</p>}
