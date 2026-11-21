@@ -103,7 +103,7 @@ export default function IntakeAdmin(){
   const assertion=TotpMultiFactorGenerator.assertionForSignIn(hint.uid,normalizeTotpCode(otp))
   const credential=await factor.resolver.resolveSignIn(assertion);setOtp('');setFactor(null)
   token.current=await credential.user.getIdToken()
-  try{const result=await api({operation:'list'});setCases(result.cases);setState('ready')}catch(problem){await logout();throw problem}
+  try{const result=await api({operation:'list'});setSetupMessage('');setCases(result.cases);setState('ready')}catch(problem){await logout();throw problem}
  })}
  const detail=id=>run(async()=>setSelected((await api({operation:'detail',id})).case))
  const download=file=>run(async()=>{
